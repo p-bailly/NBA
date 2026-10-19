@@ -1,6 +1,6 @@
 // Service worker minimal : l'app s'ouvre hors-ligne, les logos sont mis en cache.
 // Les données live (API ESPN) ne sont jamais mises en cache ici.
-const VERSION = 'v2'
+const VERSION = 'v3'
 const SHELL = `shell-${VERSION}`
 const IMAGES = `images-${VERSION}`
 
