@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react'
-import { fetchGame, type Competitor, type GameDetail, type Leader, type Team } from '../api/espn'
+import { fetchGame, type Competitor, type GameDetail, type Leader, type Odds, type Team } from '../api/espn'
 import { BoxScore } from '../components/BoxScore'
 import { PlayByPlay } from '../components/PlayByPlay'
 import { StatCompare } from '../components/StatCompare'
 import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
 import { WinProbChart } from '../components/WinProbChart'
 import { usePolling } from '../hooks/usePolling'
-import { isClutch, periodLong, periodShort, shortDate, statusLabel, timeOf } from '../lib/format'
+import { euroOdds, isClutch, periodLong, periodShort, shortDate, signedLine, statusLabel, timeOf } from '../lib/format'
 import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
@@ -237,6 +237,8 @@ function Summary({ data }: { data: GameDetail }) {
         </Card>
       )}
 
+      {data.odds && <OddsCard odds={data.odds} home={home} away={away} started={started} />}
+
       <Card title="Infos du match">
         <dl className="info-list">
           <dt>Date</dt>
@@ -254,16 +256,6 @@ function Summary({ data }: { data: GameDetail }) {
             <>
               <dt>TV (US)</dt>
               <dd>{game.broadcasts.join(', ')}</dd>
-            </>
-          )}
-          {data.odds?.details && (
-            <>
-              <dt>Cote</dt>
-              <dd>
-                {data.odds.details}
-                {data.odds.overUnder ? ` · O/U ${data.odds.overUnder}` : ''}
-                {data.odds.provider ? <span className="muted"> ({data.odds.provider})</span> : null}
-              </dd>
             </>
           )}
           {data.seasonSeries && (
@@ -314,6 +306,59 @@ function Summary({ data }: { data: GameDetail }) {
         </Card>
       )}
     </div>
+  )
+}
+
+/** Cotes au format européen : vainqueur, handicap et total de points. */
+function OddsCard({ odds, home, away, started }: { odds: Odds; home: Team; away: Team; started: boolean }) {
+  const ml = odds.moneyline ?? {}
+  const mlAway = euroOdds(ml.away)
+  const mlHome = euroOdds(ml.home)
+  // En cote américaine, la plus petite valeur est celle du favori (-150 < +130).
+  const fav = ml.home != null && ml.away != null && ml.home !== ml.away ? (ml.home < ml.away ? 'home' : 'away') : undefined
+  const sp = odds.spread
+  const spreadCell = (line?: number, american?: number) =>
+    line == null ? '–' : `${signedLine(line)}${american != null ? ` · ${euroOdds(american)}` : ''}`
+  const total = odds.total
+
+  if (!(mlAway && mlHome) && sp?.home == null && total?.line == null) return null
+
+  return (
+    <Card title={started ? 'Cotes d’avant-match' : 'Cotes'}>
+      <div className="odds">
+        <div className="odds-row head">
+          <span />
+          <span><TeamLogo team={away} size={20} /> {away.abbr}</span>
+          <span><TeamLogo team={home} size={20} /> {home.abbr}</span>
+        </div>
+        {mlAway && mlHome && (
+          <div className="odds-row">
+            <span className="odds-label">Vainqueur</span>
+            <span className={fav === 'away' ? 'fav' : ''}>{mlAway}</span>
+            <span className={fav === 'home' ? 'fav' : ''}>{mlHome}</span>
+          </div>
+        )}
+        {sp && (sp.home != null || sp.away != null) && (
+          <div className="odds-row">
+            <span className="odds-label">Handicap</span>
+            <span>{spreadCell(sp.away, sp.awayOdds)}</span>
+            <span>{spreadCell(sp.home, sp.homeOdds)}</span>
+          </div>
+        )}
+        {total?.line != null && (
+          <div className="odds-row">
+            <span className="odds-label">Total {total.line.toLocaleString('fr-FR')} pts</span>
+            <span className="odds-wide">
+              Plus <strong>{euroOdds(total.over) ?? '–'}</strong> · Moins <strong>{euroOdds(total.under) ?? '–'}</strong>
+            </span>
+          </div>
+        )}
+      </div>
+      <p className="footnote left">
+        Cotes {odds.provider ?? 'ESPN'} (États-Unis) converties au format européen ; celles des bookmakers français
+        peuvent légèrement différer.
+      </p>
+    </Card>
   )
 }
 

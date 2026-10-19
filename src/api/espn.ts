@@ -53,6 +53,10 @@ export interface Odds {
   details?: string // "BOS -1.5"
   overUnder?: number
   provider?: string
+  // Cotes américaines (-110, +150…) ; converties au format européen à l'affichage.
+  moneyline?: { home?: number; away?: number }
+  spread?: { home?: number; away?: number; homeOdds?: number; awayOdds?: number }
+  total?: { line?: number; over?: number; under?: number }
 }
 
 export interface Game {
@@ -163,10 +167,48 @@ function parseStatus(s: J) {
   }
 }
 
+/** "-110" / "+150" / "EVEN" → cote américaine. */
+function american(v: J): number | undefined {
+  const s = str(v).trim().toUpperCase()
+  if (s === 'EVEN') return 100
+  const n = Number(s.replace(/^\+/, ''))
+  return s && Number.isFinite(n) && n !== 0 ? n : undefined
+}
+
+/** "+1.5" / "o222.5" → 1.5 / 222.5 */
+function lineOf(v: J): number | undefined {
+  const n = parseFloat(str(v).replace(/^[ou]/i, ''))
+  return Number.isFinite(n) ? n : undefined
+}
+
+// Utilisé pour le tableau des matchs et pour le "pickcenter" de la fiche (même format).
 function parseOdds(list: J[] | undefined): Odds | undefined {
   const o = list?.[0]
-  if (!o || (!o.details && o.overUnder == null)) return undefined
-  return { details: o.details, overUnder: o.overUnder, provider: o.provider?.name }
+  if (!o || (!o.details && o.overUnder == null && !o.moneyline)) return undefined
+  const cur = (side: J) => side?.close ?? side?.open
+  const ml = o.moneyline
+  const ps = o.pointSpread
+  const tot = o.total
+  return {
+    details: o.details,
+    overUnder: o.overUnder,
+    provider: o.provider?.name,
+    moneyline: {
+      home: american(cur(ml?.home)?.odds) ?? american(o.homeTeamOdds?.moneyLine),
+      away: american(cur(ml?.away)?.odds) ?? american(o.awayTeamOdds?.moneyLine),
+    },
+    spread: ps && {
+      home: lineOf(cur(ps.home)?.line),
+      away: lineOf(cur(ps.away)?.line),
+      homeOdds: american(cur(ps.home)?.odds),
+      awayOdds: american(cur(ps.away)?.odds),
+    },
+    total: tot && {
+      line: lineOf(cur(tot.over)?.line) ?? o.overUnder,
+      over: american(cur(tot.over)?.odds),
+      under: american(cur(tot.under)?.odds),
+    },
+  }
 }
 
 function parseBroadcasts(c: J): string[] {
@@ -366,7 +408,6 @@ export async function fetchGame(id: string, signal?: AbortSignal): Promise<GameD
     leaders: parseLeaders(t.leaders),
   }))
 
-  const pc = d.pickcenter?.[0]
   const injuries: Injury[] = (d.injuries ?? []).flatMap((t: J) =>
     (t.injuries ?? []).map((i: J) => ({
       teamId: str(t.team?.id),
@@ -385,7 +426,7 @@ export async function fetchGame(id: string, signal?: AbortSignal): Promise<GameD
     leaders,
     officials: (d.gameInfo?.officials ?? []).map((o: J) => str(o.displayName)),
     attendance: d.gameInfo?.attendance || undefined,
-    odds: pc ? { details: pc.details, overUnder: pc.overUnder, provider: pc.provider?.name } : game.odds,
+    odds: parseOdds(d.pickcenter) ?? game.odds,
     seasonSeries: d.seasonseries?.[0]?.summary,
     injuries,
     predictorHome: num(d.predictor?.homeTeam?.gameProjection) ?? undefined,

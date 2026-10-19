@@ -1631,3 +1631,49 @@ input[role='switch']:checked::after {
   display: flex;
   gap: 4px;
 }
+
+/* Cotes */
+.gc-oddsline {
+  font-variant-numeric: tabular-nums;
+}
+.gc-oddsline strong {
+  color: var(--text);
+  font-weight: 650;
+}
+.odds {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 12px 10px;
+  align-items: center;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.odds-row {
+  display: contents;
+}
+.odds-row > span:not(.odds-label) {
+  text-align: center;
+  font-weight: 650;
+}
+.odds-row.head > span {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.odds-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.odds .fav {
+  color: var(--accent);
+}
+.odds-wide {
+  grid-column: 2 / 4;
+  font-weight: 500 !important;
+}
+.footnote.left {
+  text-align: left;
+  padding: 12px 0 0;
+}

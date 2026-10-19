@@ -1,4 +1,4 @@
-import type { Game } from '../api/espn'
+import type { Game, Odds } from '../api/espn'
 
 const LOCALE = 'fr-FR'
 
@@ -104,6 +104,30 @@ export function timeAgo(iso: string): string {
   if (h < 24) return `il y a ${h} h`
   const d = Math.round(h / 24)
   return d === 1 ? 'hier' : `il y a ${d} j`
+}
+
+// ---------- Cotes ----------
+
+/** Cote américaine → cote européenne : -110 → "1,91", +150 → "2,50". */
+export function euroOdds(american?: number): string | undefined {
+  if (american == null) return undefined
+  const dec = american > 0 ? 1 + american / 100 : 1 + 100 / -american
+  return dec.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/** Ligne signée à la française : -2.5 → "−2,5" (vrai signe moins), 1.5 → "+1,5". */
+export function signedLine(n: number): string {
+  const s = Math.abs(n).toLocaleString(LOCALE)
+  return n > 0 ? `+${s}` : n < 0 ? `−${s}` : '0'
+}
+
+/** Handicap de l'équipe favorite, ex. "SA -2,5" ("Égalité" si aucune n'est favorite). */
+export function handicapLabel(odds: Odds, home: string, away: string): string | undefined {
+  const { home: h, away: a } = odds.spread ?? {}
+  if (h != null && h < 0) return `${home} ${signedLine(h)}`
+  if (a != null && a < 0) return `${away} ${signedLine(a)}`
+  if (h === 0 || a === 0) return 'Égalité'
+  return odds.details?.replace(/(\d)\.(\d)/g, '$1,$2')
 }
 
 /** Logo redimensionné via le CDN d'ESPN, en version sombre si demandé. */

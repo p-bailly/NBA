@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Competitor, Game } from '../api/espn'
-import { isClutch, periodShort, statusLabel } from '../lib/format'
+import { euroOdds, handicapLabel, isClutch, periodShort, statusLabel } from '../lib/format'
 import { href } from '../lib/router'
 import { LiveBadge, TeamLogo } from './ui'
 
@@ -45,6 +45,11 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
   const clutch = isClutch(game)
   const top = game.state !== 'pre' ? bestPerformer(game) : undefined
   const isFav = (c: Competitor) => favorites.includes(c.team.id)
+  const odds = game.state === 'pre' ? game.odds : undefined
+  const awayOdds = euroOdds(odds?.moneyline?.away)
+  const homeOdds = euroOdds(odds?.moneyline?.home)
+  const handicap = odds && handicapLabel(odds, game.home.team.abbr, game.away.team.abbr)
+  const hasOdds = !!((awayOdds && homeOdds) || handicap)
 
   return (
     <a className={`game-card ${live ? 'live' : ''} ${clutch ? 'clutch' : ''}`} href={href.game(game.id)}>
@@ -66,10 +71,9 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
           {game.state === 'pre' && game.broadcasts.length > 0 && (
             <span className="gc-tv">{game.broadcasts.slice(0, 2).join(' · ')}</span>
           )}
-          {game.state === 'pre' && game.odds?.details && <span className="gc-odds">{game.odds.details}</span>}
         </div>
       </div>
-      {(top || game.note || (live && game.lastPlay)) && (
+      {(top || game.note || (live && game.lastPlay) || hasOdds) && (
         <div className="gc-foot">
           {live && game.lastPlay ? (
             <span className="gc-lastplay">{game.lastPlay}</span>
@@ -77,6 +81,22 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
             <span>
               <span className="muted">Top : </span>
               {top.shortName} <span className="muted">({top.team})</span> · {top.value}
+            </span>
+          ) : hasOdds ? (
+            <span className="gc-oddsline">
+              {awayOdds && homeOdds && (
+                <>
+                  <span className="muted">Cotes </span>
+                  {game.away.team.abbr} <strong>{awayOdds}</strong> · {game.home.team.abbr} <strong>{homeOdds}</strong>
+                </>
+              )}
+              {awayOdds && homeOdds && handicap && <span className="muted"> · </span>}
+              {handicap && (
+                <>
+                  <span className="muted">Hand. </span>
+                  <strong>{handicap}</strong>
+                </>
+              )}
             </span>
           ) : null}
           {game.note && <span className="gc-note">{game.note}</span>}
