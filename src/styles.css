@@ -1392,11 +1392,13 @@ input[role='switch']:checked::after {
 }
 
 .roster li {
+  border-top: 1px solid var(--border);
+}
+.roster-row {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-top: 1px solid var(--border);
 }
 .roster li:first-child {
   border-top: 0;
@@ -1727,4 +1729,252 @@ input[role='switch']:checked::after {
 }
 .link-btn:disabled {
   opacity: 0.45;
+}
+
+/* ---------- Fiche joueur ---------- */
+.player-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 4px 16px 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--team, var(--accent)) 50%, var(--surface)), var(--surface) 78%);
+  border: 1px solid var(--border);
+}
+.view > .player-hero {
+  max-width: calc(820px - 32px);
+}
+.player-hero .headshot {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+.player-id {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.player-id h2 {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.player-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.player-line .jersey {
+  min-width: 0;
+  text-align: left;
+}
+.player-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.next-game {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.stat-label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 800;
+}
+.stat-rank {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.avg-table th[scope='row'],
+.avg-table thead th:first-child {
+  min-width: 84px;
+}
+.glog-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 4px 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+.glog-date {
+  font-size: 12.5px;
+  color: var(--muted);
+  align-self: center;
+}
+.glog-opp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.glog-line {
+  grid-column: 2;
+  font-variant-numeric: tabular-nums;
+}
+.more-btn {
+  width: 100%;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+  font-weight: 600;
+}
+a.player-link {
+  text-decoration: none;
+}
+a.player-link:hover .bs-name,
+a.player-link:hover strong {
+  text-decoration: underline;
+}
+
+/* ---------- Carte des tirs ---------- */
+.shots {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.shots-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.shots-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.shots-head strong {
+  font-size: 17px;
+}
+.shots-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.shots-legend svg + svg {
+  margin-left: 8px;
+}
+.court-wrap,
+.shots-legend {
+  --shot: var(--c-away);
+}
+.court-wrap[data-side='home'],
+.shots-legend[data-side='home'] {
+  --shot: var(--c-home);
+}
+.court-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+.court-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.court rect,
+.court circle,
+.court path,
+.court line {
+  stroke: var(--axis);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+.court .paint {
+  fill: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.court .board,
+.court .rim {
+  stroke: var(--text-2);
+  stroke-width: 2;
+}
+.mk.made {
+  fill: var(--shot);
+  stroke: var(--surface);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.mk.miss {
+  fill: none;
+  stroke: var(--shot);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.shot {
+  cursor: pointer;
+}
+.shot .hit {
+  fill: transparent;
+}
+.shot.sel .mk.made {
+  stroke: var(--text);
+  stroke-width: 2.5;
+}
+.shot.sel .mk.miss {
+  stroke: var(--text);
+  stroke-width: 3.2;
+}
+.shot.latest .mk {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.shot-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.zones {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.zones th,
+.zones td {
+  padding: 9px 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+.zones th[scope='row'],
+.zones thead th:first-child {
+  text-align: left;
+}
+.zones thead th {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
 }

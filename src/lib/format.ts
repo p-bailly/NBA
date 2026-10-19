@@ -106,6 +106,37 @@ export function timeAgo(iso: string): string {
   return d === 1 ? 'hier' : `il y a ${d} j`
 }
 
+// ---------- Joueurs ----------
+
+/** 1 → "1er", 22 → "22e" */
+export const ordinal = (n: number) => (n === 1 ? '1er' : `${n}e`)
+
+/** "6' 8\"" → "2,03 m" */
+export function heightMetric(h?: string): string | undefined {
+  const m = h?.match(/(\d+)'\s*(\d+)/)
+  if (!m) return h
+  return `${(((Number(m[1]) * 12 + Number(m[2])) * 2.54) / 100).toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`
+}
+
+/** "230 lbs" → "104 kg" */
+export function weightMetric(w?: string): string | undefined {
+  const lbs = parseFloat(w ?? '')
+  return Number.isFinite(lbs) ? `${Math.round(lbs * 0.4536)} kg` : w
+}
+
+const POSITIONS: Record<string, string> = {
+  'Point Guard': 'Meneur',
+  'Shooting Guard': 'Arrière',
+  Guard: 'Arrière',
+  'Small Forward': 'Ailier',
+  'Power Forward': 'Ailier fort',
+  Forward: 'Ailier',
+  Center: 'Pivot',
+  'Guard-Forward': 'Arrière-ailier',
+  'Forward-Center': 'Ailier-pivot',
+}
+export const positionFr = (p: string) => POSITIONS[p] ?? p
+
 // ---------- Cotes ----------
 
 /** Cote décimale à la française : 1.909 → "1,91". */

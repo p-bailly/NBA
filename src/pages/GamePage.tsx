@@ -3,6 +3,7 @@ import { fetchGame, type Competitor, type Game, type GameDetail, type Leader, ty
 import { useGameOdds } from '../api/oddsApi'
 import { BoxScore } from '../components/BoxScore'
 import { PlayByPlay } from '../components/PlayByPlay'
+import { ShotChart } from '../components/ShotChart'
 import { StatCompare } from '../components/StatCompare'
 import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
 import { WinProbChart } from '../components/WinProbChart'
@@ -11,7 +12,7 @@ import { formatOdds, isClutch, periodLong, periodShort, shortDate, signedLine, s
 import { href } from '../lib/router'
 import { useFavorites, useOddsSettings } from '../lib/store'
 
-type Tab = 'summary' | 'box' | 'pbp'
+type Tab = 'summary' | 'box' | 'pbp' | 'shots'
 
 export function GamePage({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>('summary')
@@ -50,6 +51,7 @@ export function GamePage({ id }: { id: string }) {
               { value: 'summary', label: 'Résumé' },
               { value: 'box', label: 'Box score' },
               { value: 'pbp', label: 'Actions' },
+              { value: 'shots', label: 'Tirs' },
             ]}
           />
         </div>
@@ -58,6 +60,9 @@ export function GamePage({ id }: { id: string }) {
         {(!started || tab === 'summary') && <Summary data={data} />}
         {started && tab === 'box' && (data.box.length ? <BoxScore teams={data.box} /> : <Empty>Box score indisponible.</Empty>)}
         {started && tab === 'pbp' && <PlayByPlay plays={data.plays} home={game.home.team} away={game.away.team} />}
+        {started && tab === 'shots' && (
+          <ShotChart plays={data.plays} box={data.box} home={game.home.team} away={game.away.team} live={game.state === 'in'} />
+        )}
       </div>
     </>
   )
@@ -380,13 +385,13 @@ function OddsCard({ game, fallback }: { game: Game; fallback?: Odds }) {
 function LeaderCell({ l, right }: { l?: Leader; right?: boolean }) {
   if (!l) return <span className="leader-cell" />
   return (
-    <span className={`leader-cell ${right ? 'right' : ''}`}>
+    <a className={`leader-cell player-link ${right ? 'right' : ''}`} href={href.player(l.athleteId)}>
       <Headshot src={l.headshot} alt={l.shortName} size={40} />
       <span className="leader-text">
         <strong>{l.value}</strong>
         <span className="muted">{l.shortName}</span>
       </span>
-    </span>
+    </a>
   )
 }
 

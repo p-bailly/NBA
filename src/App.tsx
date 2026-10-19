@@ -4,6 +4,7 @@ import { href, TABS, useRoute, type TabName } from './lib/router'
 import { GamePage } from './pages/GamePage'
 import { LeadersPage } from './pages/LeadersPage'
 import { NewsPage } from './pages/NewsPage'
+import { PlayerPage } from './pages/PlayerPage'
 import { ScoresPage } from './pages/ScoresPage'
 import { StandingsPage } from './pages/StandingsPage'
 import { TeamPage } from './pages/TeamPage'
@@ -99,6 +100,11 @@ export function App() {
         {route.name === 'team' && (
           <div key={`team-${route.id}`} className="view detail">
             <TeamPage id={route.id} />
+          </div>
+        )}
+        {route.name === 'player' && (
+          <div key={`player-${route.id}`} className="view detail">
+            <PlayerPage id={route.id} />
           </div>
         )}
       </main>

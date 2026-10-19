@@ -10,13 +10,14 @@ export type Route =
   | { name: 'news' }
   | { name: 'game'; id: string }
   | { name: 'team'; id: string }
+  | { name: 'player'; id: string }
 
 export const TABS = ['scores', 'teams', 'standings', 'leaders', 'news'] as const
 export type TabName = (typeof TABS)[number]
 
 function parse(hash: string): Route {
   const [name, id] = hash.replace(/^#\/?/, '').split('/')
-  if ((name === 'game' || name === 'team') && id) return { name, id }
+  if ((name === 'game' || name === 'team' || name === 'player') && id) return { name, id }
   if ((TABS as readonly string[]).includes(name)) return { name: name as TabName }
   return { name: 'scores' }
 }
@@ -45,6 +46,7 @@ export function useRoute(): Route {
 export const href = {
   game: (id: string) => `#/game/${id}`,
   team: (id: string) => `#/team/${id}`,
+  player: (id: string) => `#/player/${id}`,
   tab: (t: TabName) => (t === 'scores' ? '#/' : `#/${t}`),
 }
 

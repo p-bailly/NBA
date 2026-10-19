@@ -304,6 +304,9 @@ export interface Play {
   scoring: boolean
   scoreValue: number
   teamId?: string
+  athleteId?: string
+  /** Tir (hors lancers francs) : position en pieds, x de 0 à 50, y depuis le cercle. */
+  shot?: { x: number; y: number; points: number; made: boolean }
 }
 
 export interface WinProbPoint {
@@ -377,6 +380,13 @@ function parseBox(p: J): BoxTeam {
   }
 }
 
+// Les lancers francs et les actions sans tir ont des coordonnées sentinelles (≈ -2 milliards).
+function shotOf(p: J): Play['shot'] {
+  const c = p.coordinate
+  if (!p.shootingPlay || !c || c.x < -100 || c.y < -100 || /free throw/i.test(str(p.text))) return undefined
+  return { x: Number(c.x), y: Number(c.y), points: Number(p.pointsAttempted ?? 2), made: !!p.scoringPlay }
+}
+
 export async function fetchGame(id: string, signal?: AbortSignal): Promise<GameDetail> {
   const d = await getJson(`${SITE}/summary?event=${encodeURIComponent(id)}`, signal)
   const comp = d.header?.competitions?.[0] ?? {}
@@ -405,6 +415,8 @@ export async function fetchGame(id: string, signal?: AbortSignal): Promise<GameD
     scoring: !!p.scoringPlay,
     scoreValue: Number(p.scoreValue ?? 0),
     teamId: p.team?.id ? str(p.team.id) : undefined,
+    athleteId: p.participants?.[0]?.athlete?.id ? str(p.participants[0].athlete.id) : undefined,
+    shot: shotOf(p),
   }))
 
   const leaders: TeamLeaders[] = (d.leaders ?? []).map((t: J) => ({
@@ -497,6 +509,105 @@ export async function fetchRoster(id: string, signal?: AbortSignal): Promise<Ros
     headshot: a.headshot?.href,
     injury: a.injuries?.[0]?.status,
   }))
+}
+
+// ---------- Joueurs ----------
+
+const ATHLETE = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes'
+
+export interface PlayerGame {
+  id: string
+  date: string
+  atVs: string // "vs" | "@"
+  opponent: { id: string; abbr: string; logo: string }
+  result: string // W | L
+  teamScore?: string
+  oppScore?: string
+  seasonType: string
+  stats: Record<string, string> // minutes, points, totalRebounds, assists…
+}
+
+export interface PlayerProfile {
+  id: string
+  name: string
+  jersey: string
+  position: string
+  headshot?: string
+  team?: Team
+  age?: number
+  height?: string // "6' 8\""
+  weight?: string // "230 lbs"
+  birthPlace?: string
+  draft?: string // "2018: Rd 1, Pk 3 (ATL)"
+  experience?: string // "9th Season"
+  summaryLabel: string // "2025-26 regular season stats"
+  summary: { abbr: string; value: string; rank?: number }[]
+  averages: { labels: string[]; rows: { label: string; values: string[] }[] }
+  games: PlayerGame[]
+  nextGame?: { id: string; date: string; label: string }
+}
+
+export async function fetchPlayer(id: string, signal?: AbortSignal): Promise<PlayerProfile> {
+  const [info, overview, log] = await Promise.all([
+    getJson(`${ATHLETE}/${id}`, signal),
+    getJson(`${ATHLETE}/${id}/overview`, signal),
+    getJson(`${ATHLETE}/${id}/gamelog`, signal).catch(() => ({})),
+  ])
+  const a = info.athlete ?? {}
+  const stats = overview.statistics ?? {}
+
+  const games: PlayerGame[] = []
+  for (const st of log.seasonTypes ?? []) {
+    for (const cat of st.categories ?? []) {
+      for (const g of cat.events ?? []) {
+        const e = log.events?.[g.eventId]
+        if (!e) continue
+        const values: Record<string, string> = {}
+        ;(log.names ?? []).forEach((n: string, i: number) => (values[n] = str(g.stats?.[i])))
+        const home = str(e.homeTeamId) === str(e.team?.id)
+        games.push({
+          id: str(g.eventId),
+          date: str(e.gameDate),
+          atVs: str(e.atVs),
+          opponent: { id: str(e.opponent?.id), abbr: str(e.opponent?.abbreviation), logo: str(e.opponent?.logo) },
+          result: str(e.gameResult),
+          teamScore: home ? e.homeTeamScore : e.awayTeamScore,
+          oppScore: home ? e.awayTeamScore : e.homeTeamScore,
+          seasonType: str(st.displayName),
+          stats: values,
+        })
+      }
+    }
+  }
+  games.sort((x, y) => y.date.localeCompare(x.date))
+
+  const next = overview.nextGame?.league?.events?.[0]
+  return {
+    id,
+    name: str(a.displayName),
+    jersey: str(a.jersey),
+    position: str(a.position?.displayName),
+    headshot: a.headshot?.href,
+    team: a.team ? parseTeam(a.team) : undefined,
+    age: a.age,
+    height: a.displayHeight,
+    weight: a.displayWeight,
+    birthPlace: a.displayBirthPlace,
+    draft: a.displayDraft,
+    experience: a.displayExperience,
+    summaryLabel: str(a.statsSummary?.displayName),
+    summary: (a.statsSummary?.statistics ?? []).map((x: J) => ({
+      abbr: str(x.abbreviation),
+      value: str(x.displayValue),
+      rank: x.rank ?? undefined,
+    })),
+    averages: {
+      labels: stats.names ?? [],
+      rows: (stats.splits ?? []).map((sp: J) => ({ label: str(sp.displayName), values: (sp.stats ?? []).map(str) })),
+    },
+    games,
+    nextGame: next ? { id: str(next.id), date: str(next.date), label: str(next.shortName) } : undefined,
+  }
 }
 
 // ---------- Classement ----------

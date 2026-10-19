@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { BoxPlayer, BoxTeam } from '../api/espn'
+import { href } from '../lib/router'
 import { Segmented, TeamLogo } from './ui'
 
 // Colonnes affichées (clé ESPN → libellé français).
@@ -29,7 +30,9 @@ function PlayerRow({ p }: { p: BoxPlayer }) {
   return (
     <tr className={p.didNotPlay ? 'dnp' : ''}>
       <th scope="row">
-        <span className="bs-name">{p.shortName}</span>
+        <a className="player-link" href={href.player(p.id)}>
+          <span className="bs-name">{p.shortName}</span>
+        </a>
         <span className="bs-pos">{p.position}</span>
       </th>
       {p.didNotPlay ? (

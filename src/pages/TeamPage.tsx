@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fetchRoster, fetchTeamSchedule, type Game } from '../api/espn'
 import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, Star, TeamLogo } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
-import { shortDate, statusLabel } from '../lib/format'
+import { heightMetric, shortDate, statusLabel } from '../lib/format'
 import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
@@ -142,15 +142,17 @@ function Roster({ id }: { id: string }) {
       <ul className="roster">
         {data.map((p) => (
           <li key={p.id}>
-            <Headshot src={p.headshot} alt={p.name} size={44} />
-            <span className="roster-main">
-              <strong>{p.name}</strong>
-              <span className="muted">
-                {[p.position, p.height.replace(/' (\d+)"/, "'$1\""), p.age ? `${p.age} ans` : ''].filter(Boolean).join(' · ')}
+            <a className="roster-row player-link" href={href.player(p.id)}>
+              <Headshot src={p.headshot} alt={p.name} size={44} />
+              <span className="roster-main">
+                <strong>{p.name}</strong>
+                <span className="muted">
+                  {[p.position, heightMetric(p.height), p.age ? `${p.age} ans` : ''].filter(Boolean).join(' · ')}
+                </span>
               </span>
-            </span>
-            {p.injury && <span className="inj-status out">{p.injury === 'Out' ? 'Absent' : p.injury}</span>}
-            <span className="jersey">#{p.jersey}</span>
+              {p.injury && <span className="inj-status out">{p.injury === 'Out' ? 'Absent' : p.injury}</span>}
+              <span className="jersey">#{p.jersey}</span>
+            </a>
           </li>
         ))}
       </ul>

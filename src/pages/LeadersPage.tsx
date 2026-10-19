@@ -49,14 +49,16 @@ export function LeadersPage({ active }: { active: boolean }) {
                   <span className="ll-rank">{i + 1}</span>
                   <Headshot src={e.headshot} alt={e.name} size={i === 0 ? 56 : 44} />
                   <span className="ll-main">
-                    <strong>{e.name}</strong>
+                    <a className="player-link" href={href.player(e.athleteId)}>
+                      <strong>{e.name}</strong>
+                    </a>
                     {e.team && (
                       <a className="ll-team muted" href={href.team(e.team.id)}>
                         <TeamLogo team={e.team} size={16} /> {e.team.name} · {e.position}
                       </a>
                     )}
                   </span>
-                  <span className="ll-value">{e.value}</span>
+                  <span className="ll-value">{e.value.replace(/(\d)\.(\d)/, '$1,$2')}</span>
                 </li>
               ))}
             </ol>

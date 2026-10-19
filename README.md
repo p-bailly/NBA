@@ -14,7 +14,11 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
   - leaders du match, **stats d'équipe** comparées ;
   - **box score** complet (titulaires, banc, totaux) ;
   - **play-by-play** filtrable par quart-temps / paniers uniquement ;
-  - avant-match : cote, pronostic ESPN, forme sur 5 matchs, infirmerie, TV, salle.
+  - **carte des tirs** en direct : réussis / manqués sur le demi-terrain, filtres équipe, quart-temps et joueur,
+    bilan par zone (raquette, mi-distance, 3 points) ;
+  - avant-match : cotes, pronostic ESPN, forme sur 5 matchs, infirmerie, TV, salle.
+- **Fiches joueurs** (depuis le box score, les leaders ou l'effectif) : moyennes saison et carrière avec rang NBA,
+  records de la saison, historique des matchs et prochain match.
 - **Mes équipes** : favoris (leurs matchs remontent en tête des scores) et page équipe (calendrier, résultats, effectif).
 - **Alertes** : début de match, **match serré** (≤ 5 pts dans les 5 dernières minutes), prolongation, score final —
   pour vos équipes ou toute la ligue.
