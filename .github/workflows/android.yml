@@ -1,0 +1,53 @@
+# Construit l'APK Android et le publie dans la release « apk » du dépôt.
+# Lien permanent : https://github.com/<owner>/<repo>/releases/latest/download/superfan-basket.apk
+name: APK Android
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    # Uniquement sur la branche par défaut du dépôt.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Compilation de l'APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../superfan-basket.apk
+      - name: Publication dans la release « apk »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="APK construit automatiquement depuis ${GITHUB_SHA::7} (build n°${{ github.run_number }})."
+          if gh release view apk >/dev/null 2>&1; then
+            gh release upload apk superfan-basket.apk --clobber
+            gh release edit apk --notes "$NOTES"
+          else
+            gh release create apk superfan-basket.apk --target "$GITHUB_SHA" --latest \
+              --title "Superfan Basket – APK Android" --notes "$NOTES"
+          fi

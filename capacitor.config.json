@@ -1,0 +1,14 @@
+{
+  "appId": "com.pbailly.superfanbasket",
+  "appName": "Superfan Basket",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0b0e14"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_notify",
+      "iconColor": "#FF7A2E"
+    }
+  }
+}

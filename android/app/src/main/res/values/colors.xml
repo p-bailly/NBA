@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fond derrière la WebView (barres système), même couleur que le fond de l app. -->
+    <color name="app_background">#F1F2F5</color>
+</resources>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchScoreboard, type Game } from '../api/espn'
 import { liveInterval, usePolling } from '../hooks/usePolling'
 import { isClutch, periodShort } from '../lib/format'
+import { showNotification, onNotificationOpen } from '../lib/notifications'
 import { href } from '../lib/router'
 import { getFavoriteIds, useAlertSettings, type AlertSettings } from '../lib/store'
 
@@ -34,18 +35,6 @@ function diff(prev: Game, next: Game, s: AlertSettings): Alert[] {
   return out
 }
 
-async function notify(a: Alert) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return
-  const options = { body: a.body, tag: a.key, icon: './icon-192.png', badge: './icon-192.png', data: { url: href.game(a.gameId) } }
-  try {
-    const reg = await navigator.serviceWorker?.getRegistration()
-    if (reg) await reg.showNotification(a.title, options)
-    else new Notification(a.title, options)
-  } catch {
-    /* certaines plateformes refusent les notifications hors service worker */
-  }
-}
-
 /** Surveille les matchs du jour et affiche des alertes (bandeau dans l'app + notification système). */
 export function Alerts() {
   const { settings } = useAlertSettings()
@@ -76,7 +65,7 @@ export function Alerts() {
       }
     }
     if (!fresh.length) return
-    fresh.forEach(notify)
+    fresh.forEach((a) => showNotification(a.key, a.title, a.body, href.game(a.gameId)))
     setToasts((t) => [...t, ...fresh].slice(-3))
   }, [data, settings])
 
@@ -86,14 +75,8 @@ export function Alerts() {
     return () => window.clearTimeout(t)
   }, [toasts])
 
-  // Clic sur une notification système : le service worker demande d'ouvrir le match.
-  useEffect(() => {
-    const onMsg = (e: MessageEvent) => {
-      if (e.data?.type === 'open' && typeof e.data.hash === 'string') location.hash = e.data.hash
-    }
-    navigator.serviceWorker?.addEventListener('message', onMsg)
-    return () => navigator.serviceWorker?.removeEventListener('message', onMsg)
-  }, [])
+  // Notification système touchée : on ouvre le match.
+  useEffect(() => onNotificationOpen((hash) => (location.hash = hash)), [])
 
   if (!toasts.length) return null
   return (

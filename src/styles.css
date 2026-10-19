@@ -21,8 +21,11 @@
   --c-home: #d95926;
   --grid: #262c38;
   --axis: #3a4252;
-  --header-h: calc(56px + env(safe-area-inset-top));
-  --tabbar-h: calc(60px + env(safe-area-inset-bottom));
+  /* Marges système : env() côté navigateur, variables injectées par l'appli Android (Capacitor). */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --header-h: calc(56px + var(--safe-top));
+  --tabbar-h: calc(60px + var(--safe-bottom));
   --radius: 14px;
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -147,7 +150,7 @@ img {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   height: var(--tabbar-h);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-bottom);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(14px);
   border-top: 1px solid var(--border);
@@ -176,7 +179,7 @@ img {
   align-items: center;
   gap: 8px;
   min-height: var(--header-h);
-  padding: env(safe-area-inset-top) 16px 0;
+  padding: var(--safe-top) 16px 0;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(14px);
 }
@@ -1560,7 +1563,7 @@ input[role='switch']:checked::after {
 /* ---------- Alertes ---------- */
 .toasts {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 8px);
+  top: calc(var(--safe-top) + 8px);
   left: 50%;
   transform: translateX(-50%);
   width: min(420px, calc(100% - 24px));

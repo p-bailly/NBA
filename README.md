@@ -23,6 +23,24 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
 - **Actus** NBA.
 - Thème sombre / clair automatique, fonctionne hors-ligne pour l'interface.
 
+## Appli Android (APK)
+
+**Télécharger :** https://github.com/p-bailly/NBA/releases/latest/download/superfan-basket.apk
+
+1. Ouvrez le lien sur le téléphone Android et téléchargez le fichier.
+2. Ouvrez-le : Android demande d'autoriser l'installation depuis le navigateur (« sources inconnues ») — acceptez.
+3. L'appli **Superfan Basket** apparaît avec les autres applis.
+
+L'APK est reconstruit automatiquement par GitHub Actions (`.github/workflows/android.yml`) à chaque push sur la
+branche par défaut ; il suffit de le retélécharger pour mettre à jour (il s'installe par-dessus l'ancien).
+
+Il est signé avec une clé de signature personnelle volontairement versionnée (`android/app/superfan.keystore`),
+pour que les APK construits n'importe où aient la même signature. C'est adapté à un usage perso, pas à une
+publication sur le Play Store.
+
+Construire l'APK soi-même : Android SDK (plateforme 36) + Java 21, puis `npm run android`
+→ `android/app/build/outputs/apk/release/app-release.apk`.
+
 ## Lancer l'app en local
 
 Prérequis : [Node.js](https://nodejs.org) 20 ou plus.
@@ -38,9 +56,8 @@ Version de production : `npm run build` puis `npm run preview`.
 ## La mettre sur votre téléphone
 
 1. **Hébergez-la** (gratuit) :
-   - **GitHub Pages** : le workflow `.github/workflows/deploy.yml` publie l'app à chaque push sur `main`.
-     Activez-le une fois dans *Settings → Pages → Source : GitHub Actions*.
-     (Pages est gratuit pour un dépôt public ; pour un dépôt privé il faut un compte GitHub payant.)
+   - **GitHub Pages** : le workflow `.github/workflows/deploy.yml` publie l'app à chaque push sur la branche
+     par défaut, une fois Pages activé dans *Settings → Pages → Source : GitHub Actions*.
    - Ou **Netlify / Vercel / Cloudflare Pages** (marchent aussi avec un dépôt privé) :
      commande de build `npm run build`, dossier publié `dist`.
 2. Ouvrez l'adresse sur le téléphone puis :
@@ -51,8 +68,9 @@ L'app s'ouvre alors en plein écran comme une app native.
 
 ## Les alertes
 
-Activez-les dans l'onglet **Mes équipes**. Elles s'affichent dans l'app et en notification système quand le
-navigateur le permet (sur iPhone : seulement une fois l'app ajoutée à l'écran d'accueil, iOS 16.4+).
+Activez-les dans l'onglet **Mes équipes**. Elles s'affichent dans l'app et en notification système
+(appli Android : notifications natives ; navigateur : quand il le permet, sur iPhone seulement une fois l'app
+ajoutée à l'écran d'accueil, iOS 16.4+).
 
 Limite : sans serveur, les alertes ne partent que **quand l'app est ouverte ou en arrière-plan récent**.
 Des notifications avec l'app complètement fermée demanderaient un serveur de push.
@@ -75,4 +93,5 @@ src/
   components/          cartes de match, graphique de probabilité, box score, play-by-play, alertes…
   pages/               Scores, Match, Mes équipes, Équipe, Classement, Leaders, Actus
 public/                manifest PWA, service worker, icônes
+android/               projet Android (Capacitor) qui embarque l'app web
 ```

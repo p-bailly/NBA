@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { fetchTeams } from '../api/espn'
 import { ErrorBox, Loading, PageHeader, Star, TeamLogo } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
+import { isNative, notificationPermission, requestNotificationPermission, type Permission } from '../lib/notifications'
 import { href } from '../lib/router'
 import { useAlertSettings, useFavorites, type AlertSettings } from '../lib/store'
 
@@ -96,13 +97,13 @@ const ALERT_OPTIONS: { key: keyof AlertSettings; label: string; hint?: string }[
 
 function AlertsCard() {
   const { settings, update } = useAlertSettings()
-  const supported = 'Notification' in window
-  const [perm, setPerm] = useState(supported ? Notification.permission : 'denied')
+  const [perm, setPerm] = useState<Permission>('default')
+  useEffect(() => {
+    notificationPermission().then(setPerm)
+  }, [])
 
   const toggleEnabled = async () => {
-    if (!settings.enabled && supported && Notification.permission === 'default') {
-      setPerm(await Notification.requestPermission())
-    }
+    if (!settings.enabled && perm === 'default') setPerm(await requestNotificationPermission())
     update({ enabled: !settings.enabled })
   }
 
@@ -119,7 +120,9 @@ function AlertsCard() {
       {settings.enabled && perm === 'denied' && (
         <p className="warn">
           Les notifications sont bloquées par le navigateur : les alertes s’afficheront seulement dans l’app.
-          {/iPhone|iPad/.test(navigator.userAgent) && ' Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil.'}
+          {isNative
+            ? ' Autorisez-les dans les réglages Android de l’application.'
+            : /iPhone|iPad/.test(navigator.userAgent) && ' Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil.'}
         </p>
       )}
       {settings.enabled &&
