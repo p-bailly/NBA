@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-// Petits stores persistés dans le navigateur (favoris, réglages d'alertes).
+// Petits stores persistés dans le navigateur (favoris, réglages d'alertes et de cotes).
 // Tout reste sur l'appareil : l'app est pour un usage perso.
 
 function load<T>(key: string, fallback: T): T {
@@ -12,7 +12,7 @@ function load<T>(key: string, fallback: T): T {
   }
 }
 
-function createStore<T extends object>(key: string, initial: T) {
+export function createStore<T extends object>(key: string, initial: T) {
   let value = load(key, initial)
   const listeners = new Set<() => void>()
   return {
@@ -72,4 +72,19 @@ const alerts = createStore<AlertSettings>('superfan:alerts', {
 export function useAlertSettings() {
   const settings = useSyncExternalStore(alerts.subscribe, alerts.get)
   return { settings, update: (patch: Partial<AlertSettings>) => alerts.set({ ...settings, ...patch }) }
+}
+
+// ---------- Cotes (The Odds API) ----------
+
+export interface OddsSettings {
+  apiKey: string
+  /** Clé du bookmaker affiché (ex. "winamax_fr"), ou "best" pour la meilleure cote. */
+  bookmaker: string
+}
+
+export const oddsSettings = createStore<OddsSettings>('superfan:odds', { apiKey: '', bookmaker: 'winamax_fr' })
+
+export function useOddsSettings() {
+  const settings = useSyncExternalStore(oddsSettings.subscribe, oddsSettings.get)
+  return { settings, update: (patch: Partial<OddsSettings>) => oddsSettings.set({ ...settings, ...patch }) }
 }

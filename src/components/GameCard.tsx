@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Competitor, Game } from '../api/espn'
-import { euroOdds, handicapLabel, isClutch, periodShort, statusLabel } from '../lib/format'
+import { useGameOdds } from '../api/oddsApi'
+import { formatOdds, handicapLabel, isClutch, periodShort, statusLabel } from '../lib/format'
 import { href } from '../lib/router'
 import { LiveBadge, TeamLogo } from './ui'
 
@@ -45,9 +46,10 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
   const clutch = isClutch(game)
   const top = game.state !== 'pre' ? bestPerformer(game) : undefined
   const isFav = (c: Competitor) => favorites.includes(c.team.id)
-  const odds = game.state === 'pre' ? game.odds : undefined
-  const awayOdds = euroOdds(odds?.moneyline?.away)
-  const homeOdds = euroOdds(odds?.moneyline?.home)
+  const gameOdds = useGameOdds(game, game.odds)
+  const odds = game.state === 'pre' ? gameOdds : undefined
+  const awayOdds = formatOdds(odds?.moneyline?.away)
+  const homeOdds = formatOdds(odds?.moneyline?.home)
   const handicap = odds && handicapLabel(odds, game.home.team.abbr, game.away.team.abbr)
   const hasOdds = !!((awayOdds && homeOdds) || handicap)
 
@@ -86,7 +88,7 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
             <span className="gc-oddsline">
               {awayOdds && homeOdds && (
                 <>
-                  <span className="muted">Cotes </span>
+                  <span className="muted">{odds?.short ?? 'Cotes'} </span>
                   {game.away.team.abbr} <strong>{awayOdds}</strong> · {game.home.team.abbr} <strong>{homeOdds}</strong>
                 </>
               )}

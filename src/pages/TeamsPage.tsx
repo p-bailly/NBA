@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { fetchTeams } from '../api/espn'
+import { BOOKMAKERS, CREDITS_PER_REFRESH, forgetOddsCache, refreshOdds, useOddsStatus } from '../api/oddsApi'
 import { ErrorBox, Loading, PageHeader, Star, TeamLogo } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
 import { isNative, notificationPermission, requestNotificationPermission, type Permission } from '../lib/notifications'
 import { href } from '../lib/router'
-import { useAlertSettings, useFavorites, type AlertSettings } from '../lib/store'
+import { timeAgo } from '../lib/format'
+import { useAlertSettings, useFavorites, useOddsSettings, type AlertSettings } from '../lib/store'
 
 export function TeamsPage({ active }: { active: boolean }) {
   const { data: groups, error, refresh } = usePolling((s) => fetchTeams(s), [], null, active)
@@ -18,7 +20,7 @@ export function TeamsPage({ active }: { active: boolean }) {
 
   return (
     <>
-      <PageHeader title="Mes équipes" subtitle="Favoris et alertes" />
+      <PageHeader title="Mes équipes" subtitle="Favoris, alertes et cotes" />
       <div className="content">
         <section className="card">
           <h3 className="card-title">Favoris</h3>
@@ -42,6 +44,8 @@ export function TeamsPage({ active }: { active: boolean }) {
         </section>
 
         <AlertsCard />
+
+        <OddsSettingsCard />
 
         <section className="card">
           <h3 className="card-title">Toutes les équipes</h3>
@@ -135,6 +139,93 @@ function AlertsCard() {
             <input type="checkbox" role="switch" checked={!!settings[o.key]} onChange={(e) => update({ [o.key]: e.target.checked })} />
           </label>
         ))}
+    </section>
+  )
+}
+
+/** Clé The Odds API et choix du bookmaker pour les cotes françaises. */
+function OddsSettingsCard() {
+  const { settings, update } = useOddsSettings()
+  const status = useOddsStatus()
+  const [draft, setDraft] = useState(settings.apiKey)
+  const [show, setShow] = useState(false)
+  const active = !!settings.apiKey
+
+  const save = () => {
+    const apiKey = draft.trim()
+    update({ apiKey })
+    if (apiKey) refreshOdds(true)
+  }
+  const remove = () => {
+    update({ apiKey: '' })
+    setDraft('')
+    forgetOddsCache()
+  }
+
+  return (
+    <section className="card">
+      <h3 className="card-title">Cotes des bookmakers français</h3>
+      <p className="muted small">
+        Sans réglage, l’app affiche les cotes DraftKings (États-Unis) converties au format européen. Avec une clé
+        gratuite <a href="https://the-odds-api.com/#get-access" target="_blank" rel="noreferrer">The Odds API</a>{' '}
+        (500 crédits par mois), elle affiche les vraies cotes de Winamax, Betclic, Unibet, PMU ou NetBet.
+      </p>
+      <div className="key-row">
+        <input
+          className="search"
+          type={show ? 'text' : 'password'}
+          placeholder="Collez votre clé API"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <button className="chip" onClick={() => setShow(!show)} aria-pressed={show}>
+          {show ? 'Masquer' : 'Afficher'}
+        </button>
+      </div>
+      <div className="key-actions">
+        <button className="btn" onClick={save} disabled={!draft.trim() || (draft.trim() === settings.apiKey && !status.error)}>
+          Enregistrer
+        </button>
+        {active && (
+          <button className="link-btn" onClick={remove}>
+            Supprimer la clé
+          </button>
+        )}
+      </div>
+
+      {active && (
+        <>
+          <label className="switch-row">
+            <span>Bookmaker affiché</span>
+            <select className="select" value={settings.bookmaker} onChange={(e) => update({ bookmaker: e.target.value })}>
+              {BOOKMAKERS.map((b) => (
+                <option key={b.key} value={b.key}>
+                  {b.name}
+                </option>
+              ))}
+              <option value="best">Meilleure cote</option>
+            </select>
+          </label>
+          <div className="odds-status">
+            {status.loading ? (
+              <span className="muted">Chargement des cotes…</span>
+            ) : status.error ? (
+              <span className="warn">{status.error}</span>
+            ) : status.fetchedAt ? (
+              <span className="muted">
+                {status.events.length} match{status.events.length > 1 ? 's' : ''} · mis à jour {timeAgo(new Date(status.fetchedAt).toISOString())}
+                {status.remaining != null && ` · ${status.remaining} crédits restants`}
+              </span>
+            ) : null}
+            <button className="link-btn" onClick={() => refreshOdds(true)} disabled={status.loading}>
+              Actualiser ({CREDITS_PER_REFRESH} crédits)
+            </button>
+          </div>
+          <p className="muted small">Les cotes sont gardées 6 h pour ménager les crédits gratuits.</p>
+        </>
+      )}
     </section>
   )
 }

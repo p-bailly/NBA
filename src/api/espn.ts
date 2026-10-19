@@ -49,11 +49,14 @@ export interface Competitor {
   leaders: Leader[]
 }
 
+// Cotes au format européen (décimal, ex. 1.91), quelle que soit la source.
 export interface Odds {
+  source: 'espn' | 'oddsapi'
+  provider?: string // "DraftKings", "Winamax"…
+  short?: string // libellé court pour les cartes de match
+  updatedAt?: string
   details?: string // "BOS -1.5"
   overUnder?: number
-  provider?: string
-  // Cotes américaines (-110, +150…) ; converties au format européen à l'affichage.
   moneyline?: { home?: number; away?: number }
   spread?: { home?: number; away?: number; homeOdds?: number; awayOdds?: number }
   total?: { line?: number; over?: number; under?: number }
@@ -167,12 +170,12 @@ function parseStatus(s: J) {
   }
 }
 
-/** "-110" / "+150" / "EVEN" → cote américaine. */
-function american(v: J): number | undefined {
+/** Cote américaine ("-110", "+150", "EVEN") → cote décimale européenne (1.91, 2.5, 2). */
+function decimalOdds(v: J): number | undefined {
   const s = str(v).trim().toUpperCase()
-  if (s === 'EVEN') return 100
-  const n = Number(s.replace(/^\+/, ''))
-  return s && Number.isFinite(n) && n !== 0 ? n : undefined
+  const a = s === 'EVEN' ? 100 : Number(s.replace(/^\+/, ''))
+  if (!s || !Number.isFinite(a) || a === 0) return undefined
+  return a > 0 ? 1 + a / 100 : 1 + 100 / -a
 }
 
 /** "+1.5" / "o222.5" → 1.5 / 222.5 */
@@ -190,23 +193,24 @@ function parseOdds(list: J[] | undefined): Odds | undefined {
   const ps = o.pointSpread
   const tot = o.total
   return {
+    source: 'espn',
     details: o.details,
     overUnder: o.overUnder,
     provider: o.provider?.name,
     moneyline: {
-      home: american(cur(ml?.home)?.odds) ?? american(o.homeTeamOdds?.moneyLine),
-      away: american(cur(ml?.away)?.odds) ?? american(o.awayTeamOdds?.moneyLine),
+      home: decimalOdds(cur(ml?.home)?.odds) ?? decimalOdds(o.homeTeamOdds?.moneyLine),
+      away: decimalOdds(cur(ml?.away)?.odds) ?? decimalOdds(o.awayTeamOdds?.moneyLine),
     },
     spread: ps && {
       home: lineOf(cur(ps.home)?.line),
       away: lineOf(cur(ps.away)?.line),
-      homeOdds: american(cur(ps.home)?.odds),
-      awayOdds: american(cur(ps.away)?.odds),
+      homeOdds: decimalOdds(cur(ps.home)?.odds),
+      awayOdds: decimalOdds(cur(ps.away)?.odds),
     },
     total: tot && {
       line: lineOf(cur(tot.over)?.line) ?? o.overUnder,
-      over: american(cur(tot.over)?.odds),
-      under: american(cur(tot.under)?.odds),
+      over: decimalOdds(cur(tot.over)?.odds),
+      under: decimalOdds(cur(tot.under)?.odds),
     },
   }
 }

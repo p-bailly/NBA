@@ -1,14 +1,15 @@
 import { useState, type ReactNode } from 'react'
-import { fetchGame, type Competitor, type GameDetail, type Leader, type Odds, type Team } from '../api/espn'
+import { fetchGame, type Competitor, type Game, type GameDetail, type Leader, type Odds, type Team } from '../api/espn'
+import { useGameOdds } from '../api/oddsApi'
 import { BoxScore } from '../components/BoxScore'
 import { PlayByPlay } from '../components/PlayByPlay'
 import { StatCompare } from '../components/StatCompare'
 import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
 import { WinProbChart } from '../components/WinProbChart'
 import { usePolling } from '../hooks/usePolling'
-import { euroOdds, isClutch, periodLong, periodShort, shortDate, signedLine, statusLabel, timeOf } from '../lib/format'
+import { formatOdds, isClutch, periodLong, periodShort, shortDate, signedLine, statusLabel, timeAgo, timeOf } from '../lib/format'
 import { href } from '../lib/router'
-import { useFavorites } from '../lib/store'
+import { useFavorites, useOddsSettings } from '../lib/store'
 
 type Tab = 'summary' | 'box' | 'pbp'
 
@@ -237,7 +238,7 @@ function Summary({ data }: { data: GameDetail }) {
         </Card>
       )}
 
-      {data.odds && <OddsCard odds={data.odds} home={home} away={away} started={started} />}
+      <OddsCard game={game} fallback={data.odds} />
 
       <Card title="Infos du match">
         <dl className="info-list">
@@ -310,15 +311,21 @@ function Summary({ data }: { data: GameDetail }) {
 }
 
 /** Cotes au format européen : vainqueur, handicap et total de points. */
-function OddsCard({ odds, home, away, started }: { odds: Odds; home: Team; away: Team; started: boolean }) {
+function OddsCard({ game, fallback }: { game: Game; fallback?: Odds }) {
+  const odds = useGameOdds(game, fallback)
+  const { settings } = useOddsSettings()
+  if (!odds) return null
+  const home = game.home.team
+  const away = game.away.team
+  const started = game.state !== 'pre'
   const ml = odds.moneyline ?? {}
-  const mlAway = euroOdds(ml.away)
-  const mlHome = euroOdds(ml.home)
-  // En cote américaine, la plus petite valeur est celle du favori (-150 < +130).
+  const mlAway = formatOdds(ml.away)
+  const mlHome = formatOdds(ml.home)
+  // La plus petite cote est celle du favori.
   const fav = ml.home != null && ml.away != null && ml.home !== ml.away ? (ml.home < ml.away ? 'home' : 'away') : undefined
   const sp = odds.spread
-  const spreadCell = (line?: number, american?: number) =>
-    line == null ? '–' : `${signedLine(line)}${american != null ? ` · ${euroOdds(american)}` : ''}`
+  const spreadCell = (line?: number, price?: number) =>
+    line == null ? '–' : `${signedLine(line)}${price != null ? ` · ${formatOdds(price)}` : ''}`
   const total = odds.total
 
   if (!(mlAway && mlHome) && sp?.home == null && total?.line == null) return null
@@ -349,15 +356,23 @@ function OddsCard({ odds, home, away, started }: { odds: Odds; home: Team; away:
           <div className="odds-row">
             <span className="odds-label">Total {total.line.toLocaleString('fr-FR')} pts</span>
             <span className="odds-wide">
-              Plus <strong>{euroOdds(total.over) ?? '–'}</strong> · Moins <strong>{euroOdds(total.under) ?? '–'}</strong>
+              Plus <strong>{formatOdds(total.over) ?? '–'}</strong> · Moins <strong>{formatOdds(total.under) ?? '–'}</strong>
             </span>
           </div>
         )}
       </div>
-      <p className="footnote left">
-        Cotes {odds.provider ?? 'ESPN'} (États-Unis) converties au format européen ; celles des bookmakers français
-        peuvent légèrement différer.
-      </p>
+      {odds.source === 'oddsapi' ? (
+        <p className="footnote left">
+          Cotes {odds.provider} via The Odds API{odds.updatedAt ? ` · mises à jour ${timeAgo(odds.updatedAt)}` : ''}.
+        </p>
+      ) : (
+        <p className="footnote left">
+          Cotes {odds.provider ?? 'ESPN'} (États-Unis) converties au format européen.
+          {settings.apiKey
+            ? ' Ce match n’est pas (encore) proposé par les bookmakers français.'
+            : ' Pour les cotes Winamax, Betclic, Unibet… ajoutez une clé The Odds API dans « Mes équipes ».'}
+        </p>
+      )}
     </Card>
   )
 }

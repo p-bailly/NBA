@@ -75,6 +75,21 @@ ajoutée à l'écran d'accueil, iOS 16.4+).
 Limite : sans serveur, les alertes ne partent que **quand l'app est ouverte ou en arrière-plan récent**.
 Des notifications avec l'app complètement fermée demanderaient un serveur de push.
 
+## Cotes des bookmakers français
+
+Par défaut, les cotes viennent d'ESPN (DraftKings, États-Unis) et sont converties au format européen
+(ex. -110 → 1,91), avec le handicap du favori (ex. « SA −2,5 ») et le total de points.
+
+Pour afficher les **vraies cotes de Winamax, Betclic, Unibet, PMU ou NetBet** :
+
+1. Créez une clé gratuite sur [the-odds-api.com](https://the-odds-api.com/#get-access) (500 crédits par mois).
+2. Dans l'app, onglet **Mes équipes → Cotes des bookmakers français**, collez la clé et choisissez le bookmaker
+   (ou « Meilleure cote »).
+
+Chaque actualisation coûte 3 crédits (vainqueur, handicap, total). Les cotes sont gardées 6 h sur l'appareil, et
+le bouton « Actualiser » permet de forcer une mise à jour ; le nombre de crédits restants est affiché. La clé reste
+sur votre téléphone : elle n'est jamais dans le code ni envoyée ailleurs qu'à The Odds API.
+
 ## Données
 
 Les données viennent de l'API publique (non officielle) d'ESPN, appelée directement depuis le navigateur.

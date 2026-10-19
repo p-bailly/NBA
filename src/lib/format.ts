@@ -108,11 +108,9 @@ export function timeAgo(iso: string): string {
 
 // ---------- Cotes ----------
 
-/** Cote américaine → cote européenne : -110 → "1,91", +150 → "2,50". */
-export function euroOdds(american?: number): string | undefined {
-  if (american == null) return undefined
-  const dec = american > 0 ? 1 + american / 100 : 1 + 100 / -american
-  return dec.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+/** Cote décimale à la française : 1.909 → "1,91". */
+export function formatOdds(dec?: number): string | undefined {
+  return dec?.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 /** Ligne signée à la française : -2.5 → "−2,5" (vrai signe moins), 1.5 → "+1,5". */
