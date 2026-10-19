@@ -1,5 +1,5 @@
 # Construit l'APK Android et le publie dans la release « apk » du dépôt.
-# Lien permanent : https://github.com/<owner>/<repo>/releases/latest/download/superfan-basket.apk
+# Lien permanent : https://github.com/<owner>/<repo>/releases/latest/download/basket-live.apk
 name: APK Android
 
 on:
@@ -38,16 +38,18 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release.apk ../superfan-basket.apk
+          cp app/build/outputs/apk/release/app-release.apk ../basket-live.apk
       - name: Publication dans la release « apk »
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NOTES="APK construit automatiquement depuis ${GITHUB_SHA::7} (build n°${{ github.run_number }})."
           if gh release view apk >/dev/null 2>&1; then
-            gh release upload apk superfan-basket.apk --clobber
-            gh release edit apk --notes "$NOTES"
+            gh release upload apk basket-live.apk --clobber
+            gh release edit apk --title "Basket Live – APK Android" --notes "$NOTES"
+            # Ancien nom du fichier (avant le renommage de l'appli) : on le retire pour éviter la confusion.
+            gh release delete-asset apk superfan-basket.apk --yes 2>/dev/null || true
           else
-            gh release create apk superfan-basket.apk --target "$GITHUB_SHA" --latest \
-              --title "Superfan Basket – APK Android" --notes "$NOTES"
+            gh release create apk basket-live.apk --target "$GITHUB_SHA" --latest \
+              --title "Basket Live – APK Android" --notes "$NOTES"
           fi

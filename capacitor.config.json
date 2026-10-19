@@ -1,6 +1,6 @@
 {
   "appId": "com.pbailly.superfanbasket",
-  "appName": "Superfan Basket",
+  "appName": "Basket Live",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#0b0e14"

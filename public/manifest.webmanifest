@@ -1,6 +1,6 @@
 {
-  "name": "Superfan Basket – Scores NBA en direct",
-  "short_name": "Superfan",
+  "name": "Basket Live – Scores NBA en direct",
+  "short_name": "Basket Live",
   "description": "Scores NBA en direct, box scores, play-by-play, classements et stats.",
   "start_url": "./",
   "scope": "./",

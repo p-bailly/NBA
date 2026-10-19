@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Superfan Basket</string>
-    <string name="title_activity_main">Superfan Basket</string>
+    <string name="app_name">Basket Live</string>
+    <string name="title_activity_main">Basket Live</string>
     <string name="package_name">com.pbailly.superfanbasket</string>
     <string name="custom_url_scheme">com.pbailly.superfanbasket</string>
 </resources>

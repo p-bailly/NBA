@@ -1,4 +1,4 @@
-# Superfan Basket 🏀
+# Basket Live 🏀
 
 Application perso de **scores NBA en direct**, inspirée de *Superfan Sports Pro Basketball*.
 C'est une web app installable sur téléphone (PWA) : pas de store, pas de compte, pas de serveur.
@@ -25,11 +25,11 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
 
 ## Appli Android (APK)
 
-**Télécharger :** https://github.com/p-bailly/NBA/releases/latest/download/superfan-basket.apk
+**Télécharger :** https://github.com/p-bailly/NBA/releases/latest/download/basket-live.apk
 
 1. Ouvrez le lien sur le téléphone Android et téléchargez le fichier.
 2. Ouvrez-le : Android demande d'autoriser l'installation depuis le navigateur (« sources inconnues ») — acceptez.
-3. L'appli **Superfan Basket** apparaît avec les autres applis.
+3. L'appli **Basket Live** apparaît avec les autres applis.
 
 L'APK est reconstruit automatiquement par GitHub Actions (`.github/workflows/android.yml`) à chaque push sur la
 branche par défaut ; il suffit de le retélécharger pour mettre à jour (il s'installe par-dessus l'ancien).
