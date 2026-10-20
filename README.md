@@ -113,4 +113,5 @@ src/
   pages/               Scores, Match, Mes équipes, Équipe, Classement, Leaders, Actus
 public/                manifest PWA, service worker, icônes
 android/               projet Android (Capacitor) qui embarque l'app web
+design/logo/           logo au crayon : generer.py (SVG, icône adaptative), puis png.cjs (PNG)
 ```
