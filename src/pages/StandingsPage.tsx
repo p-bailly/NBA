@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { fetchStandings, type Conference } from '../api/espn'
+import { ProjectionTable } from '../components/Projection'
 import { ErrorBox, Loading, PageHeader, Segmented, TeamLogo } from '../components/ui'
-import { usePolling } from '../hooks/usePolling'
+import { usePolling, type PollState } from '../hooks/usePolling'
+import { getProjection, type Projection as ProjectionData } from '../lib/projection'
 import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
 type Conf = 'East' | 'West'
+type View = 'standings' | 'projection'
 
 export function StandingsPage({ active }: { active: boolean }) {
   const [conf, setConf] = useState<Conf>('East')
+  const [view, setView] = useState<View>('standings')
   const [previous, setPrevious] = useState(false)
 
   const { data, error, refresh } = usePolling(
@@ -20,8 +24,9 @@ export function StandingsPage({ active }: { active: boolean }) {
     },
     [previous],
     5 * 60_000,
-    active,
+    active && view === 'standings',
   )
+  const proj = usePolling(() => getProjection(), [], 15 * 60_000, active && view === 'projection')
 
   const notStarted = !previous && data?.conferences.every((c) => c.rows.every((r) => r.wins + r.losses === 0))
   const current = data?.conferences.find((c) => c.short === conf)
@@ -30,6 +35,14 @@ export function StandingsPage({ active }: { active: boolean }) {
     <>
       <PageHeader title="Classement" subtitle={data ? `Saison régulière ${data.season}` : ' '} />
       <div className="toolbar">
+        <Segmented<View>
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'standings', label: 'Classement' },
+            { value: 'projection', label: 'Projection fin de saison' },
+          ]}
+        />
         <Segmented<Conf>
           value={conf}
           onChange={setConf}
@@ -39,21 +52,47 @@ export function StandingsPage({ active }: { active: boolean }) {
           ]}
         />
       </div>
-      <div className="content">
-        {error && !data && <ErrorBox error={error} onRetry={refresh} />}
-        {!data && !error && <Loading />}
-        {(notStarted || previous) && (
-          <p className="notice">
-            {previous ? 'Classement final de la saison précédente.' : 'La saison n’a pas encore commencé.'}{' '}
-            <button className="link-btn" onClick={() => setPrevious(!previous)}>
-              {previous ? 'Revenir à la saison en cours' : 'Voir la saison précédente'}
-            </button>
-          </p>
-        )}
-        {current && <ConferenceTable conf={current} />}
-        <p className="footnote">1–6 : qualifiés pour les playoffs · 7–10 : play-in · GB : matchs de retard · Série : V = victoires, D = défaites</p>
-      </div>
+      {view === 'projection' ? (
+        <Projection conf={conf} {...proj} />
+      ) : (
+        <div className="content">
+          {error && !data && <ErrorBox error={error} onRetry={refresh} />}
+          {!data && !error && <Loading />}
+          {(notStarted || previous) && (
+            <p className="notice">
+              {previous ? 'Classement final de la saison précédente.' : 'La saison n’a pas encore commencé.'}{' '}
+              <button className="link-btn" onClick={() => setPrevious(!previous)}>
+                {previous ? 'Revenir à la saison en cours' : 'Voir la saison précédente'}
+              </button>
+            </p>
+          )}
+          {current && <ConferenceTable conf={current} />}
+          <p className="footnote">1–6 : qualifiés pour les playoffs · 7–10 : play-in · GB : matchs de retard · Série : V = victoires, D = défaites</p>
+        </div>
+      )}
     </>
+  )
+}
+
+function Projection({ conf, data, error, refresh }: { conf: Conf } & PollState<ProjectionData>) {
+  const current = data?.conferences.find((c) => c.short === conf)
+  return (
+    <div className="content">
+      {error && !data && <ErrorBox error={error} onRetry={refresh} />}
+      {!data && !error && <Loading label="Simulation de la fin de saison…" />}
+      {current && <ProjectionTable conf={current} />}
+      {data && (
+        <p className="footnote">
+          Chances (%) de finir à chaque place de la conférence, sur {data.sims.toLocaleString('fr-FR')} simulations des{' '}
+          {data.remaining} matchs restants.{' '}
+          {data.ratings === 'bpi'
+            ? 'Force des équipes : indice BPI d’ESPN.'
+            : 'Force des équipes : écart de points moyen (indice BPI d’ESPN indisponible).'}{' '}
+          Égalités départagées aux confrontations directes puis au bilan dans la conférence. Playoffs : top 6, ou
+          qualifié par le play-in.
+        </p>
+      )}
+    </div>
   )
 }
 

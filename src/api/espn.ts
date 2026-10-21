@@ -687,10 +687,19 @@ export interface LeaderCategory {
 export interface SeasonLeaders {
   season: string
   categories: LeaderCategory[]
+  /** Nombre de matchs, quand les leaders sont calculés ici à partir des box scores. */
+  computedFrom?: number
 }
 
 export async function fetchLeaders(signal?: AbortSignal): Promise<SeasonLeaders> {
   const d = await getJson(`${SITE_V3}/leaders`, signal)
+  // En début de saison, ESPN sert encore quelques jours les leaders de la saison précédente :
+  // on calcule alors ceux de la nouvelle saison à partir des box scores des premiers matchs.
+  const cur = d.currentSeason
+  if (cur?.type?.type === 2 && cur.year > (d.requestedSeason?.year ?? cur.year)) {
+    const computed = await leadersFromBoxScores(cur, signal)
+    if (computed) return computed
+  }
   return {
     season: str(d.requestedSeason?.displayName),
     categories: (d.leaders?.categories ?? []).map((c: J) => ({
@@ -707,6 +716,185 @@ export async function fetchLeaders(signal?: AbortSignal): Promise<SeasonLeaders>
       })),
     })),
   }
+}
+
+interface Totals {
+  player: BoxPlayer
+  team: Team
+  gp: number
+  min: number
+  pts: number
+  reb: number
+  ast: number
+  stl: number
+  blk: number
+  fgm: number
+  fga: number
+  tpm: number
+  tpa: number
+  ftm: number
+  fta: number
+  dd: number
+}
+
+type Stat = Exclude<keyof Totals, 'player' | 'team'>
+
+// Être classé : avoir joué 70 % des matchs de son équipe et, pour les pourcentages, autant de paniers
+// par match d'équipe que les minimums NBA (300 tirs, 82 tirs à 3 pts, 125 lancers francs sur 82 matchs).
+const perGame = (k: Stat) => (t: Totals) => t[k] / t.gp
+const percent = (made: Stat, att: Stat, perTeamGame: number) => ({
+  value: (t: Totals) => (t[att] ? (100 * t[made]) / t[att] : 0),
+  min: (t: Totals, games: number) => t[made] >= perTeamGame * games,
+})
+const BOX_CATEGORIES: { name: string; label: string; abbr: string; value: (t: Totals) => number; min?: (t: Totals, games: number) => boolean; total?: boolean }[] = [
+  { name: 'pointsPerGame', label: 'Points Per Game', abbr: 'PTS', value: perGame('pts') },
+  { name: 'reboundsPerGame', label: 'Rebounds Per Game', abbr: 'REB', value: perGame('reb') },
+  { name: 'assistsPerGame', label: 'Assists Per Game', abbr: 'AST', value: perGame('ast') },
+  { name: 'stealsPerGame', label: 'Steals Per Game', abbr: 'STL', value: perGame('stl') },
+  { name: 'blocksPerGame', label: 'Blocks Per Game', abbr: 'BLK', value: perGame('blk') },
+  { name: '3PointsMadePerGame', label: 'Average 3-Point Field Goals Made', abbr: '3PM', value: perGame('tpm') },
+  { name: 'fieldGoalPercentage', label: 'Field Goal Percentage', abbr: 'FG%', ...percent('fgm', 'fga', 300 / 82) },
+  { name: '3PointPct', label: '3 points field goal percentage', abbr: '3P%', ...percent('tpm', 'tpa', 82 / 82) },
+  { name: 'FreeThrowPct', label: 'Free Throws Percentage', abbr: 'FT%', ...percent('ftm', 'fta', 125 / 82) },
+  { name: 'doubleDouble', label: 'Double Double', abbr: 'DBLDBL', value: (t) => t.dd, total: true },
+  { name: 'minutesPerGame', label: 'Minutes Per Game', abbr: 'MPG', value: perGame('min') },
+]
+
+// Box scores des matchs terminés déjà chargés : ils ne changent plus.
+const boxCache = new Map<string, BoxTeam[]>()
+
+/** Leaders de la saison qui commence, calculés sur ses premières semaines (null au-delà, ou avant le 1er match). */
+async function leadersFromBoxScores(season: J, signal?: AbortSignal): Promise<SeasonLeaders | null> {
+  const days: string[] = []
+  for (const d = new Date(`${str(season.type.startDate).slice(0, 10)}T12:00:00Z`); d.getTime() <= Date.now(); d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push(d.toISOString().slice(0, 10))
+  }
+  if (!days.length || days.length > 21) return null
+
+  const boards = await Promise.all(days.map((day) => fetchScoreboard(day, signal)))
+  const ids = boards.flatMap((b) => b.games).filter((g) => g.state === 'post').map((g) => g.id)
+  if (!ids.length) return null
+  const boxes = await Promise.all(
+    ids.map(async (id) => {
+      if (!boxCache.has(id)) boxCache.set(id, (await fetchGame(id, signal)).box)
+      return boxCache.get(id)!
+    }),
+  )
+
+  const teamGames = new Map<string, number>()
+  const totals = new Map<string, Totals>()
+  const n = (v: string | undefined) => Number(v) || 0
+  const pair = (v: string | undefined) => (v ?? '').split('-').map(n)
+  for (const side of boxes.flat()) {
+    teamGames.set(side.team.id, (teamGames.get(side.team.id) ?? 0) + 1)
+    for (const p of side.players) {
+      const s = p.stats
+      if (p.didNotPlay || !n(s.minutes)) continue
+      let t = totals.get(p.id)
+      if (!t) {
+        t = { player: p, team: side.team, gp: 0, min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, dd: 0 }
+        totals.set(p.id, t)
+      }
+      t.team = side.team // les matchs sont dans l'ordre : on garde l'équipe actuelle d'un joueur transféré
+      const line = { pts: n(s.points), reb: n(s.rebounds), ast: n(s.assists), stl: n(s.steals), blk: n(s.blocks) }
+      const [fgm, fga] = pair(s['fieldGoalsMade-fieldGoalsAttempted'])
+      const [tpm, tpa] = pair(s['threePointFieldGoalsMade-threePointFieldGoalsAttempted'])
+      const [ftm, fta] = pair(s['freeThrowsMade-freeThrowsAttempted'])
+      t.gp++
+      t.min += n(s.minutes)
+      t.pts += line.pts
+      t.reb += line.reb
+      t.ast += line.ast
+      t.stl += line.stl
+      t.blk += line.blk
+      t.fgm += fgm ?? 0
+      t.fga += fga ?? 0
+      t.tpm += tpm ?? 0
+      t.tpa += tpa ?? 0
+      t.ftm += ftm ?? 0
+      t.fta += fta ?? 0
+      if (Object.values(line).filter((v) => v >= 10).length >= 2) t.dd++
+    }
+  }
+
+  const players = [...totals.values()]
+  return {
+    season: str(season.displayName),
+    computedFrom: ids.length,
+    categories: BOX_CATEGORIES.map((c) => ({
+      name: c.name,
+      label: c.label,
+      abbr: c.abbr,
+      entries: players
+        .filter((t) => {
+          const games = teamGames.get(t.team.id) ?? 1
+          return c.total || (t.gp >= Math.max(1, Math.round(0.7 * games)) && (!c.min || c.min(t, games)))
+        })
+        .map((t) => ({ t, v: c.value(t) }))
+        .filter(({ v }) => v > 0)
+        .sort((a, b) => b.v - a.v)
+        .slice(0, 10)
+        .map(({ t, v }) => ({
+          value: c.total ? String(v) : v.toFixed(1),
+          athleteId: t.player.id,
+          name: t.player.name,
+          position: t.player.position,
+          headshot: t.player.headshot,
+          team: t.team,
+        })),
+    })),
+  }
+}
+
+// ---------- Projection de fin de saison ----------
+
+export interface SeasonGame {
+  id: string
+  homeId: string
+  awayId: string
+  neutral: boolean
+  /** Vainqueur, une fois le match terminé. */
+  winnerId?: string
+}
+
+/**
+ * Tous les matchs de saison régulière qui comptent au classement, d'après les calendriers des équipes.
+ * La finale de la NBA Cup (type CC) n'y compte pas, et un match reporté réapparaît à sa nouvelle date.
+ */
+export async function fetchSeasonGames(teamIds: string[], signal?: AbortSignal): Promise<SeasonGame[]> {
+  const schedules = await Promise.all(teamIds.map((id) => getJson(`${SITE}/teams/${id}/schedule?seasontype=2`, signal)))
+  const games = new Map<string, SeasonGame>()
+  for (const e of schedules.flatMap((d) => d.events ?? [])) {
+    const c = e.competitions?.[0] ?? {}
+    const status = c.status?.type ?? {}
+    if (games.has(str(e.id)) || c.type?.abbreviation === 'CC' || /POSTPONED|CANCELED/.test(str(status.name))) continue
+    const home = (c.competitors ?? []).find((x: J) => x.homeAway === 'home')
+    const away = (c.competitors ?? []).find((x: J) => x.homeAway === 'away')
+    if (!home || !away) continue
+    const homeWon = home.winner || (!away.winner && (num(home.score) ?? 0) > (num(away.score) ?? 0))
+    games.set(str(e.id), {
+      id: str(e.id),
+      homeId: str(home.team?.id ?? home.id),
+      awayId: str(away.team?.id ?? away.id),
+      neutral: !!c.neutralSite,
+      winnerId: status.state === 'post' ? str((homeWon ? home : away).team?.id) : undefined,
+    })
+  }
+  return [...games.values()]
+}
+
+const BPI = 'https://site.web.api.espn.com/apis/fitt/v3/sports/basketball/nba/powerindex'
+
+/** Indice BPI d'ESPN par équipe : écart de points attendu face à une équipe moyenne, sur terrain neutre. */
+export async function fetchPowerIndex(signal?: AbortSignal): Promise<Map<string, number>> {
+  const d = await getJson(`${BPI}?region=us&lang=en&limit=50`, signal)
+  const col = (d.categories ?? []).find((c: J) => c.name === 'bpi')?.names?.indexOf('bpi') ?? -1
+  const out = new Map<string, number>()
+  for (const t of d.teams ?? []) {
+    const v = t.categories?.find((c: J) => c.name === 'bpi')?.values?.[col]
+    if (typeof v === 'number') out.set(str(t.team?.id), v)
+  }
+  return out
 }
 
 // ---------- Actus ----------

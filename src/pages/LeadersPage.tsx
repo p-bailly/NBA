@@ -22,7 +22,12 @@ const CATEGORIES: [string, string][] = [
 
 export function LeadersPage({ active }: { active: boolean }) {
   const [cat, setCat] = useState(CATEGORIES[0][0])
-  const { data, error, refresh } = usePolling((s) => fetchLeaders(s), [], 30 * 60_000, active)
+  const { data, error, refresh } = usePolling(
+    (s) => fetchLeaders(s),
+    [],
+    (d) => (d.computedFrom ? 10 * 60_000 : 30 * 60_000),
+    active,
+  )
 
   const category = data?.categories.find((c) => c.name === cat)
   const available = CATEGORIES.filter(([name]) => data?.categories.some((c) => c.name === name) ?? true)
@@ -40,6 +45,12 @@ export function LeadersPage({ active }: { active: boolean }) {
       <div className="content">
         {error && !data && <ErrorBox error={error} onRetry={refresh} />}
         {!data && !error && <Loading />}
+        {data?.computedFrom && (
+          <p className="notice">
+            ESPN n’a pas encore publié les stats officielles de la saison : classements calculés sur{' '}
+            {data.computedFrom > 1 ? `les ${data.computedFrom} premiers matchs` : 'le premier match'}.
+          </p>
+        )}
         {category && (
           <section className="card flush">
             <h3 className="card-title">{CATEGORIES.find(([name]) => name === cat)?.[1] ?? category.label}</h3>

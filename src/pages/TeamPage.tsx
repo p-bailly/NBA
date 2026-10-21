@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { fetchRoster, fetchTeamSchedule, type Game } from '../api/espn'
+import { SeedChart } from '../components/Projection'
 import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, Star, TeamLogo } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
 import { heightMetric, shortDate, statusLabel } from '../lib/format'
+import { getProjection } from '../lib/projection'
 import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
-type Tab = 'schedule' | 'roster'
+type Tab = 'schedule' | 'roster' | 'projection'
 
 export function TeamPage({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>('schedule')
@@ -53,12 +55,15 @@ export function TeamPage({ id }: { id: string }) {
           options={[
             { value: 'schedule', label: 'Calendrier' },
             { value: 'roster', label: 'Effectif' },
+            { value: 'projection', label: 'Projection' },
           ]}
         />
       </div>
       <div className="content">
         {tab === 'roster' ? (
           <Roster id={id} />
+        ) : tab === 'projection' ? (
+          <TeamProjection id={id} />
         ) : sched.error && !sched.data ? (
           <ErrorBox error={sched.error} onRetry={sched.refresh} />
         ) : !sched.data ? (
@@ -130,6 +135,21 @@ function SchedRow({ g, teamId }: { g: Game; teamId: string }) {
         </span>
       </a>
     </li>
+  )
+}
+
+function TeamProjection({ id }: { id: string }) {
+  const { data, error, refresh } = usePolling(() => getProjection(), [], 15 * 60_000)
+  if (error && !data) return <ErrorBox error={error} onRetry={refresh} />
+  if (!data) return <Loading label="Simulation de la fin de saison…" />
+  const conf = data.conferences.find((c) => c.teams.some((t) => t.team.id === id))
+  const t = conf?.teams.find((x) => x.team.id === id)
+  if (!conf || !t) return <Empty>Projection indisponible.</Empty>
+  return (
+    <section className="card">
+      <h3 className="card-title">Place finale en conférence {conf.short === 'East' ? 'Est' : 'Ouest'}</h3>
+      <SeedChart t={t} />
+    </section>
   )
 }
 
