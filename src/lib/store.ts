@@ -48,6 +48,7 @@ export function useFavorites() {
 }
 
 export const getFavoriteIds = () => favorites.get().ids
+export const subscribeFavorites = favorites.subscribe
 
 // ---------- Alertes ----------
 

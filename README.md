@@ -51,6 +51,16 @@ publication sur le Play Store.
 Construire l'APK soi-même : Android SDK (plateforme 36) + Java 21, puis `npm run android`
 → `android/app/build/outputs/apk/release/app-release.apk`.
 
+## Partage avec Nimbus
+
+L'appli Android partage la liste de vos **équipes favorites** avec Nimbus (`fr.perso.nimbus`), le launcher perso,
+qui affiche leurs matchs sur sa page de déverrouillage. Au démarrage et à chaque changement des favoris,
+`src/lib/nimbus.ts` les remet au plugin natif `NimbusBridge`, qui les garde dans des SharedPreferences ;
+`NimbusProvider` les sert en lecture seule à l'adresse `content://com.pbailly.superfanbasket.nimbus/favorites`
+(une ligne par équipe, dans l'ordre des favoris : `team_id` ESPN, `abbr` et `name`, ces deux derniers quand
+l.appli les connaît déjà, sinon null) et prévient Nimbus de chaque changement. Seuls Nimbus et l'appli elle-même
+peuvent lire cette adresse. Les scores, Nimbus les demande lui-même à ESPN. Rien de tout cela dans la version web.
+
 ## Lancer l'app en local
 
 Prérequis : [Node.js](https://nodejs.org) 20 ou plus.

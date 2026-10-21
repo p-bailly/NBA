@@ -106,8 +106,18 @@ function pickLogo(t: J): string {
   return def?.href ?? ''
 }
 
+// Équipes déjà vues dans une réponse d'ESPN (scores, classement, calendrier…), gardées en mémoire :
+// le partage des favoris avec Nimbus y trouve abréviation et nom sans nouvel appel.
+const seenTeams = new Map<string, Team>()
+const seenListeners = new Set<() => void>()
+export const seenTeam = (id: string): Team | undefined => seenTeams.get(id)
+export function onTeamSeen(l: () => void): () => void {
+  seenListeners.add(l)
+  return () => seenListeners.delete(l)
+}
+
 export function parseTeam(t: J): Team {
-  return {
+  const team: Team = {
     id: str(t.id),
     abbr: str(t.abbreviation),
     name: str(t.shortDisplayName || t.name),
@@ -117,6 +127,11 @@ export function parseTeam(t: J): Team {
     color: '#' + (t.color || '555555'),
     altColor: '#' + (t.alternateColor || '999999'),
   }
+  if (team.id && team.abbr && team.name && !seenTeams.has(team.id)) {
+    seenTeams.set(team.id, team)
+    seenListeners.forEach((l) => l())
+  }
+  return team
 }
 
 function parseLeaders(raw: J[] | undefined): Leader[] {

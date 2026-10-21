@@ -33,6 +33,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Équipes favorites pour le launcher Nimbus : lecture seule, l'appelant est vérifié dans le code. -->
+        <provider
+            android:name=".NimbusProvider"
+            android:authorities="com.pbailly.superfanbasket.nimbus"
+            android:exported="true" />
     </application>
 
     <!-- Permissions -->
