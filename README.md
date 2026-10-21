@@ -19,11 +19,17 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
   - avant-match : cotes, pronostic ESPN, forme sur 5 matchs, infirmerie, TV, salle.
 - **Fiches joueurs** (depuis le box score, les leaders ou l'effectif) : moyennes saison et carrière avec rang NBA,
   records de la saison, historique des matchs et prochain match.
-- **Mes équipes** : favoris (leurs matchs remontent en tête des scores) et page équipe (calendrier, résultats, effectif).
+- **Mes équipes** : favoris (leurs matchs remontent en tête des scores) et page équipe (calendrier, résultats, effectif,
+  projection de fin de saison).
 - **Alertes** : début de match, **match serré** (≤ 5 pts dans les 5 dernières minutes), prolongation, score final —
   pour vos équipes ou toute la ligue.
 - **Classement** Est / Ouest (zones playoffs et play-in), avec la saison précédente.
-- **Leaders** de la saison (points, rebonds, passes, contres, % aux tirs…).
+- **Projection de fin de saison** : pour chaque équipe, la probabilité de finir à chaque place de sa conférence
+  (1re à 15e), ses chances de playoffs (play-in compris) et son bilan projeté. Les matchs restants sont simulés
+  5 000 fois à partir de l'indice BPI d'ESPN (avantage du terrain, égalités départagées aux confrontations directes
+  puis au bilan dans la conférence, play-in joué).
+- **Leaders** de la saison (points, rebonds, passes, contres, % aux tirs…). Tant qu'ESPN sert encore ceux de la
+  saison précédente (les premiers jours d'une saison), ils sont recalculés à partir des box scores des premiers matchs.
 - **Actus** NBA.
 - Thème sombre / clair automatique, fonctionne hors-ligne pour l'interface.
 
@@ -108,7 +114,8 @@ Projet perso, sans lien avec la NBA, ESPN ou Superfan Sports.
 src/
   api/espn.ts          appels à l'API ESPN → modèles simples (Game, GameDetail, Standings…)
   hooks/usePolling.ts  chargement + rafraîchissement automatique (pause en arrière-plan)
-  lib/                 formatage (dates, statuts), favoris / réglages (localStorage), routage par hash
+  lib/                 formatage (dates, statuts), favoris / réglages (localStorage), routage par hash,
+                       projection de fin de saison (simulation de Monte-Carlo)
   components/          cartes de match, graphique de probabilité, box score, play-by-play, alertes…
   pages/               Scores, Match, Mes équipes, Équipe, Classement, Leaders, Actus
 public/                manifest PWA, service worker, icônes
