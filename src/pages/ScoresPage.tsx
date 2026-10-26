@@ -97,7 +97,6 @@ export function ScoresPage({ active }: { active: boolean }) {
               </section>
             ),
         )}
-        {data && games.length > 0 && <p className="footnote">Heures affichées dans votre fuseau horaire.</p>}
       </div>
     </>
   )

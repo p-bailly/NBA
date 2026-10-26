@@ -127,6 +127,8 @@ img {
   position: absolute;
   inset: 0;
   overflow-y: auto;
+  /* Les pages ne défilent que verticalement : un élément trop large ne doit jamais faire glisser la page. */
+  overflow-x: hidden;
   overscroll-behavior: contain;
   background: var(--bg);
   padding-bottom: 24px;
@@ -251,8 +253,8 @@ img {
   backdrop-filter: blur(14px);
 }
 .toolbar .segmented {
-  flex: 1;
-  min-width: 260px;
+  flex: 1 1 260px;
+  min-width: 0;
 }
 .updated {
   font-size: 12px;
@@ -288,6 +290,9 @@ img {
 }
 .segmented button {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 7px 10px;
   border-radius: 9px;
   font-size: 13.5px;
@@ -484,6 +489,7 @@ img {
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   padding: 4px 2px;
   mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);

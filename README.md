@@ -7,7 +7,7 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
 
 - **Scores en direct** de toute la NBA, rafraîchis automatiquement (toutes les 15 s quand un match est en cours,
   pause quand l'app est en arrière-plan). Le score clignote quand il change.
-- **Calendrier** : bandeau des jours de match de la saison + sélecteur de date. Heures affichées dans votre fuseau.
+- **Calendrier** : bandeau des jours de match de la saison + sélecteur de date.
 - **Fiche de match** :
   - tableau du score par quart-temps, horloge du match ;
   - **probabilité de victoire** au fil du match (graphique interactif) ;
