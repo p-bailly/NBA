@@ -1,7 +1,8 @@
 # Basket Live 🏀
 
 Application perso de **scores NBA en direct**, inspirée de *Superfan Sports Pro Basketball*.
-C'est une web app installable sur téléphone (PWA) : pas de store, pas de compte, pas de serveur.
+C'est une appli Android (APK à installer soi-même) : pas de store, pas de compte, pas de serveur.
+L'interface est écrite en web (React) et embarquée dans l'appli par Capacitor.
 
 ## Fonctionnalités
 
@@ -53,7 +54,7 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
 - **Leaders** de la saison (points, rebonds, passes, contres, % aux tirs…). Tant qu'ESPN sert encore ceux de la
   saison précédente (les premiers jours d'une saison), ils sont recalculés à partir des box scores des premiers matchs.
 - **Actus** NBA.
-- Thème sombre / clair automatique, fonctionne hors-ligne pour l'interface.
+- Thème sombre / clair automatique.
 
 ## Appli Android (APK)
 
@@ -81,38 +82,23 @@ qui affiche leurs matchs sur sa page de déverrouillage. Au démarrage et à cha
 `NimbusProvider` les sert en lecture seule à l'adresse `content://com.pbailly.superfanbasket.nimbus/favorites`
 (une ligne par équipe, dans l'ordre des favoris : `team_id` ESPN, `abbr` et `name`, ces deux derniers quand
 l.appli les connaît déjà, sinon null) et prévient Nimbus de chaque changement. Seuls Nimbus et l'appli elle-même
-peuvent lire cette adresse. Les scores, Nimbus les demande lui-même à ESPN. Rien de tout cela dans la version web.
+peuvent lire cette adresse. Les scores, Nimbus les demande lui-même à ESPN.
 
-## Lancer l'app en local
+## Développement
 
 Prérequis : [Node.js](https://nodejs.org) 20 ou plus.
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
-npm run dev -- --host   # pour l'ouvrir depuis votre téléphone sur le même Wi-Fi
+npm run dev          # l'interface dans un navigateur : http://localhost:5173
+npm run dev -- --host   # pour l'ouvrir depuis le téléphone sur le même Wi-Fi
 ```
 
-Version de production : `npm run build` puis `npm run preview`.
-
-## La mettre sur votre téléphone
-
-1. **Hébergez-la** (gratuit) :
-   - **GitHub Pages** : le workflow `.github/workflows/deploy.yml` publie l'app à chaque push sur la branche
-     par défaut, une fois Pages activé dans *Settings → Pages → Source : GitHub Actions*.
-   - Ou **Netlify / Vercel / Cloudflare Pages** (marchent aussi avec un dépôt privé) :
-     commande de build `npm run build`, dossier publié `dist`.
-2. Ouvrez l'adresse sur le téléphone puis :
-   - **iPhone (Safari)** : Partager → *Sur l'écran d'accueil* ;
-   - **Android (Chrome)** : menu ⋮ → *Installer l'application*.
-
-L'app s'ouvre alors en plein écran comme une app native.
+Dans le navigateur, tout marche sauf ce qui demande Android : notifications système et partage avec Nimbus.
 
 ## Les alertes
 
-Activez-les dans l'onglet **Mes équipes**. Elles s'affichent dans l'app et en notification système
-(appli Android : notifications natives ; navigateur : quand il le permet, sur iPhone seulement une fois l'app
-ajoutée à l'écran d'accueil, iOS 16.4+).
+Activez-les dans l'onglet **Mes équipes**. Elles s'affichent dans l'app et en notification Android.
 
 Limite : sans serveur, les alertes ne partent que **quand l'app est ouverte ou en arrière-plan récent**.
 Des notifications avec l'app complètement fermée demanderaient un serveur de push.
@@ -134,9 +120,9 @@ sur votre téléphone : elle n'est jamais dans le code ni envoyée ailleurs qu'�
 
 ## Données
 
-Les données viennent de l'API publique (non officielle) d'ESPN, appelée directement depuis le navigateur.
+Les données viennent de l'API publique (non officielle) d'ESPN, appelée directement depuis l'appli.
 Elle n'est pas documentée et peut changer sans préavis. Les endpoints `/teams` et `/teams/{id}` n'autorisant
-pas les appels navigateur (CORS), la liste des équipes vient du classement et la fiche équipe du calendrier.
+pas les appels depuis une page web (CORS, ce qui vaut aussi pour la WebView de l'appli), la liste des équipes vient du classement et la fiche équipe du calendrier.
 
 Projet perso, sans lien avec la NBA, ESPN ou Superfan Sports.
 
@@ -152,8 +138,8 @@ src/
                        projection de fin de saison (simulation de Monte-Carlo), calcul de l'Elo (eloCore, playerEloCore)
   components/          cartes de match, graphique de probabilité, box score, play-by-play, alertes…
   pages/               Scores, Match, Mes équipes, Équipe, Classement, Leaders, Actus
-public/                manifest PWA, service worker, icônes, Elo précalculé (elo.json)
+public/                Elo précalculé (elo.json), embarqué dans l'appli
 scripts/               calcul de l'Elo sur l'historique d'ESPN (node scripts/build-elo.mjs)
-android/               projet Android (Capacitor) qui embarque l'app web
+android/               projet Android (Capacitor) qui embarque l'interface
 design/logo/           logo au crayon : generer.py (SVG, icône adaptative), puis png.cjs (PNG)
 ```

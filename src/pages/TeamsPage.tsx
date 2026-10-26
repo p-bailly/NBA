@@ -3,7 +3,7 @@ import { fetchTeams } from '../api/espn'
 import { BOOKMAKERS, CREDITS_PER_REFRESH, forgetOddsCache, refreshOdds, useOddsStatus } from '../api/oddsApi'
 import { ErrorBox, Loading, PageHeader, Star, TeamLogo } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
-import { isNative, notificationPermission, requestNotificationPermission, type Permission } from '../lib/notifications'
+import { notificationPermission, requestNotificationPermission, type Permission } from '../lib/notifications'
 import { href } from '../lib/router'
 import { timeAgo } from '../lib/format'
 import { useAlertSettings, useFavorites, useOddsSettings, type AlertSettings } from '../lib/store'
@@ -123,10 +123,8 @@ function AlertsCard() {
       </label>
       {settings.enabled && perm === 'denied' && (
         <p className="warn">
-          Les notifications sont bloquées par le navigateur : les alertes s’afficheront seulement dans l’app.
-          {isNative
-            ? ' Autorisez-les dans les réglages Android de l’application.'
-            : /iPhone|iPad/.test(navigator.userAgent) && ' Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil.'}
+          Les notifications sont bloquées : les alertes s’afficheront seulement dans l’app. Autorisez-les dans les réglages
+          Android de l’application.
         </p>
       )}
       {settings.enabled &&

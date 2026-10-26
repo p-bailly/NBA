@@ -7,8 +7,8 @@ hasard mais reproductible : modifier le script puis le relancer.
 
 Écrit design/logo/logo.svg (grille de l'icône adaptative, 108 × 108, dessin dans le cercle sûr de 66) et les calques
 de l'icône adaptative Android (android/…/res/drawable/ic_launcher_foreground.xml et
-ic_launcher_monochrome.xml), ainsi que public/icon.svg pour l'app web. Les PNG (anciennes icônes
-Android, icônes de l'app web, écrans de démarrage) se refont ensuite avec design/logo/png.cjs. Le fond de l'icône est la couleur ic_launcher_background, le papier.
+ic_launcher_monochrome.xml). Les PNG (anciennes icônes Android, écrans de démarrage) se refont ensuite
+avec design/logo/png.cjs. Le fond de l'icône est la couleur ic_launcher_background, le papier.
 Lancer : python3 design/logo/generer.py"""
 import math
 import os
@@ -195,6 +195,3 @@ if __name__ == "__main__":
         out.write(c.drawable(note))
     with open(os.path.join(DRAWABLE, "ic_launcher_monochrome.xml"), "w") as out:
         out.write(c.drawable(note + "\n    Calque monochrome des icônes à thème d'Android 13+.", monochrome=True))
-    # Icône de l'app web (onglet du navigateur, écran d'accueil) : la zone visible de l'icône, coins arrondis.
-    with open(os.path.join(HERE, "..", "..", "public", "icon.svg"), "w") as out:
-        out.write(c.svg("Basket Live : un ballon de basket lancé", view="18 18 72 72", coins=15.75))

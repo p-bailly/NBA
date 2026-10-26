@@ -1,5 +1,5 @@
 // Rend les PNG du logo à partir de design/logo/logo.svg : anciennes icônes Android (avant Android 8, sans icône
-// adaptative), icônes de l'app web et écrans de démarrage. À relancer après design/logo/generer.py, avec Playwright
+// adaptative) et écrans de démarrage. À relancer après design/logo/generer.py, avec Playwright
 // et son Chromium installés :
 //   NODE_PATH=$(npm root -g) node design/logo/png.cjs
 const { chromium } = require('playwright')
@@ -47,13 +47,6 @@ async function rendre(page, fichier, w, h, html, transparent = false) {
     await rendre(page, path.join(dossier, 'ic_launcher.png'), taille, taille, icone(taille, COINS), true)
     await rendre(page, path.join(dossier, 'ic_launcher_round.png'), taille, taille, icone(taille, '50%'), true)
   }
-
-  // App web : carrés pleins (le système applique sa forme) ; la version « maskable » laisse de la marge autour du
-  // dessin pour qu'il reste dans le cercle sûr (80 % de l'icône).
-  const web = path.join(RACINE, 'public')
-  await rendre(page, path.join(web, 'icon-192.png'), 192, 192, logo(192))
-  await rendre(page, path.join(web, 'icon-512.png'), 512, 512, logo(512))
-  await rendre(page, path.join(web, 'icon-maskable-512.png'), 512, 512, logo(512, '9 9 90 90'))
 
   // Écrans de démarrage : l'icône au centre, sur un tiers du petit côté, sur le fond de l'app.
   for (const dossier of fs.readdirSync(RES).filter((d) => d.startsWith('drawable'))) {
