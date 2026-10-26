@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { fetchElo, type EloTeam } from '../api/elo'
-import { fetchPlayerElo, type EloPlayer } from '../api/eloPlayers'
+import { fetchElo, type Elo, type EloPlayer, type EloTeam } from '../api/elo'
 import { usePolling } from '../hooks/usePolling'
 import { dayToDate } from '../lib/format'
 import { href } from '../lib/router'
@@ -9,8 +8,8 @@ import { Chips, Empty, ErrorBox, Headshot, Loading, TeamLogo } from './ui'
 
 const PAGE = 50
 
-/** Écart d'Elo → points d'écart attendus sur un match (environ 28 points d'Elo par point). */
-export const eloPoints = (diff: number) => diff / 28
+/** Points d'écart attendus face à une équipe moyenne, sur terrain neutre. */
+export const vsAverage = (elo: Elo, t: EloTeam) => (t.rating - elo.teamMean) * elo.ptsPerElo
 
 const fr1 = (v: number) => v.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const dayFr = (day: string) => dayToDate(day).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -26,7 +25,7 @@ function Delta({ v }: { v: number }) {
   )
 }
 
-/** Elo des 30 équipes, de la meilleure à la plus faible. */
+/** Force des 30 équipes d'après l'Elo de leurs joueurs, de la meilleure à la plus faible. */
 export function EloTeams({ active }: { active: boolean }) {
   const { data, error, loading, refresh } = usePolling(() => fetchElo(), [], 10 * 60_000, active)
   const { has } = useFavorites()
@@ -39,24 +38,24 @@ export function EloTeams({ active }: { active: boolean }) {
       <div className="card flush">
         <ol className="elo-list">
           {data.teams.map((t) => (
-            <TeamRow key={t.id} t={t} fav={has(t.id)} />
+            <TeamRow key={t.id} t={t} pts={vsAverage(data, t)} fav={has(t.id)} />
           ))}
         </ol>
       </div>
       <p className="footnote">
-        Elo calculé match par match sur {data.games.toLocaleString('fr-FR')} matchs depuis la saison 2000-01 (saison régulière, play-in et playoffs), mis à jour avec
-        les derniers résultats{data.added ? ` (${data.added} depuis le calcul)` : ''}. Après chaque match, le vainqueur prend des points au perdant, d’autant plus que la
-        victoire était inattendue et large (K = {data.params.k}, avantage du terrain : {data.params.hca} points d’Elo). Entre deux saisons, chaque note revient de{' '}
-        {Math.round(data.params.regress * 100)} % vers la moyenne (1 500). Réglage mesuré sur l’historique : {Math.round(data.quality.accuracy * 100)} % des vainqueurs bien
-        prévus. Sous chaque équipe, l’écart de points attendu face à une équipe moyenne sur terrain neutre (28 points d’Elo ≈ 1 point). Évolution : sur 30 jours.
+        L’Elo d’une équipe est la moyenne des Elo de ses joueurs, pondérée par leurs minutes attendues (moyenne glissante de leurs derniers matchs avec l’équipe),
+        sans les joueurs absents d’après le rapport des blessés d’ESPN{data.injuries ? '' : ' (indisponible pour le moment)'}. Sous chaque équipe, l’écart de points
+        attendu face à une équipe moyenne sur terrain neutre ({Math.round(1 / data.ptsPerElo)} points d’Elo ≈ 1 point) et ses absents. Réglage mesuré sur l’historique,
+        avant chaque match : {(data.quality.accuracy * 100).toFixed(0)} % des vainqueurs bien prévus (avantage du terrain : {data.params.hca} points d’Elo). Évolution :
+        sur 30 jours.
         {loading ? ' Mise à jour…' : ''}
       </p>
     </div>
   )
 }
 
-function TeamRow({ t, fav }: { t: EloTeam; fav: boolean }) {
-  const pts = eloPoints(t.rating - 1500)
+function TeamRow({ t, pts, fav }: { t: EloTeam; pts: number; fav: boolean }) {
+  const absents = t.absents.filter((a) => a.minutes >= 10)
   return (
     <li>
       <a className="elo-row" href={href.team(t.id)}>
@@ -69,7 +68,8 @@ function TeamRow({ t, fav }: { t: EloTeam; fav: boolean }) {
           </strong>
           <small className="muted">
             {pts >= 0 ? '+' : '−'}
-            {fr1(Math.abs(pts))} pts par match face à la moyenne
+            {fr1(Math.abs(pts))} pts
+            {absents.length > 0 && ` · sans ${absents.map((a) => a.name.split(' ').slice(-1)[0]).join(', ')}`}
           </small>
         </span>
         <span className="elo-score">
@@ -87,7 +87,7 @@ type Scope = 'season' | 'all'
 
 /** Elo des joueurs : ceux de la saison en cours, ou tous ceux des trois dernières saisons. */
 export function EloPlayers({ active }: { active: boolean }) {
-  const { data, error, loading, refresh } = usePolling(() => fetchPlayerElo(), [], 10 * 60_000, active)
+  const { data, error, loading, refresh } = usePolling(() => fetchElo(), [], 10 * 60_000, active)
   const { ids: favs } = useFavorites()
   const [scope, setScope] = useState<Scope>('season')
   const [team, setTeam] = useState('all')
@@ -109,7 +109,7 @@ export function EloPlayers({ active }: { active: boolean }) {
   if (error && !data) return <ErrorBox error={error} onRetry={refresh} />
   if (!data) return <Loading label="Calcul de l’Elo des joueurs…" />
 
-  const teams = Object.entries(data.info).sort((a, b) => a[1][1].localeCompare(b[1][1]))
+  const teams = [...data.teams].sort((a, b) => a.name.localeCompare(b.name))
   const reset = () => setShown(PAGE)
 
   return (
@@ -128,9 +128,9 @@ export function EloPlayers({ active }: { active: boolean }) {
           <select className="search" value={team} onChange={(e) => (setTeam(e.target.value), reset())} aria-label="Équipe">
             <option value="all">Toutes les équipes</option>
             {favs.length > 0 && <option value="fav">Mes équipes</option>}
-            {teams.map(([id, [, name]]) => (
-              <option key={id} value={id}>
-                {name}
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
             ))}
           </select>
@@ -140,7 +140,7 @@ export function EloPlayers({ active }: { active: boolean }) {
           <div className="card flush">
             <ol className="elo-list">
               {rows.slice(0, shown).map((p, i) => (
-                <PlayerRow key={p.id} p={p} pos={i + 1} team={data.info[p.team]?.[0]} />
+                <PlayerRow key={p.id} p={p} pos={i + 1} team={data.teamById.get(p.team)?.abbr} />
               ))}
             </ol>
           </div>
@@ -156,7 +156,7 @@ export function EloPlayers({ active }: { active: boolean }) {
           Après le match, chaque joueur gagne ou perd selon l’écart entre son résultat et ce qui était attendu, d’autant plus qu’il a joué longtemps. Son résultat mêle
           celui de l’équipe et son +/- ({Math.round(data.params.alpha * 100)} %) : c’est ce qui départage les coéquipiers. Un nouveau joueur démarre un peu sous la
           moyenne ; sa note bouge beaucoup au début (K = {data.params.kMax} pour 48 minutes) puis se stabilise (K = {data.params.kMin}). Réglage mesuré sur
-          l’historique : {Math.round(data.quality.accuracy * 100)} % des vainqueurs bien prévus. « Provisoire » : moins de 82 matchs. Évolution : sur 30 jours.
+          l’historique : {Math.round(data.quality.accuracy * 100)} % des vainqueurs bien prévus avant le match. « Provisoire » : moins de 82 matchs. Évolution : sur 30 jours.
           {loading ? ' Mise à jour…' : ''}
         </p>
       </div>
@@ -172,7 +172,7 @@ function PlayerRow({ p, pos, team }: { p: EloPlayer; pos: number; team?: string 
         <Headshot src={headshotOf(p.id)} alt={p.name} size={30} />
         <span className="elo-name">
           <strong>{p.name}</strong>
-          <small className="muted">{[team, `${p.games} matchs`, p.games < 82 ? 'provisoire' : ''].filter(Boolean).join(' · ')}</small>
+          <small className="muted">{[team, `${p.games} matchs`, p.games < 82 ? 'provisoire' : '', p.out ? 'blessé' : ''].filter(Boolean).join(' · ')}</small>
         </span>
         <span className="elo-score">
           <strong>{Math.round(p.rating)}</strong>

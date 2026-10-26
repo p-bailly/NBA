@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { fetchPlayer, type PlayerGame, type PlayerProfile } from '../api/espn'
 import { EloChart } from '../components/EloChart'
 import { EloDelta, Empty, ErrorBox, Headshot, Loading, PageHeader, Segmented, TeamLogo } from '../components/ui'
-import { usePlayerElo } from '../hooks/useElo'
+import { useElo } from '../hooks/useElo'
 import { usePolling } from '../hooks/usePolling'
 import { heightMetric, ordinal, positionFr, shortDate, timeOf, weightMetric } from '../lib/format'
 import { href } from '../lib/router'
@@ -110,7 +110,7 @@ function Hero({ p }: { p: PlayerProfile }) {
 }
 
 function PlayerEloLine({ id }: { id: string }) {
-  const elo = usePlayerElo()?.byId.get(id)
+  const elo = useElo()?.byId.get(id)
   if (!elo) return null
   return (
     <p className="team-elo">
@@ -123,7 +123,7 @@ function PlayerEloLine({ id }: { id: string }) {
 
 /** Historique de l'Elo du joueur (cinq dernières années). */
 function PlayerEloCard({ id }: { id: string }) {
-  const data = usePlayerElo()
+  const data = useElo()
   const points = data?.history.get(id)
   if (!points || points.length < 2) return null
   return (
@@ -244,7 +244,7 @@ function recordsOf(games: PlayerGame[]) {
 
 function GameLog({ games, playerId }: { games: PlayerGame[]; playerId: string }) {
   const [all, setAll] = useState(false)
-  const recent = usePlayerElo()?.recent
+  const recent = useElo()?.recent
   if (!games.length) return <Empty>Aucun match joué pour l’instant.</Empty>
   const shown = all ? games : games.slice(0, 20)
   return (
@@ -264,9 +264,9 @@ function GameLog({ games, playerId }: { games: PlayerGame[]; playerId: string })
                   {g.opponent.abbr}
                   <span className={`wl ${g.result === 'W' ? 'w' : 'l'}`}>{g.result === 'W' ? 'V' : 'D'}</span>
                   {g.teamScore && <span className="muted">{g.teamScore}-{g.oppScore}</span>}
-                  {recent?.get(g.id)?.[playerId] !== undefined && (
+                  {recent?.get(g.id)?.players[playerId] !== undefined && (
                     <span className="glog-elo">
-                      <EloDelta value={recent.get(g.id)![playerId]} />
+                      <EloDelta value={recent.get(g.id)!.players[playerId]} />
                     </span>
                   )}
                 </span>

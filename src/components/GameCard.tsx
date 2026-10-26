@@ -73,7 +73,7 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
   const elo = useElo()
   const homeProb = game.state === 'pre' ? elo?.prob(game.home.team.id, game.away.team.id, game.neutral) : undefined
   const change = game.state === 'post' ? elo?.recent.get(game.id) : undefined
-  const rating = (c: Competitor) => (homeProb !== undefined ? elo?.byId.get(c.team.id)?.rating : undefined)
+  const rating = (c: Competitor) => (homeProb !== undefined ? elo?.teamById.get(c.team.id)?.rating : undefined)
 
   return (
     <a className={`game-card ${live ? 'live' : ''} ${clutch ? 'clutch' : ''}`} href={href.game(game.id)}>

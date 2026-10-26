@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { fetchRoster, fetchTeamSchedule, type Game } from '../api/espn'
 import { EloChart } from '../components/EloChart'
-import { eloPoints } from '../components/EloRanking'
+import { vsAverage } from '../components/EloRanking'
 import { SeedChart } from '../components/Projection'
 import { EloDelta, Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, Star, TeamLogo } from '../components/ui'
 import { useElo } from '../hooks/useElo'
@@ -24,7 +24,7 @@ export function TeamPage({ id }: { id: string }) {
   )
   const info = sched.data?.info
   const team = info?.team
-  const elo = useElo()?.byId.get(id)
+  const elo = useElo()?.teamById.get(id)
 
   return (
     <>
@@ -158,13 +158,13 @@ function SchedRow({ g, teamId }: { g: Game; teamId: string }) {
   )
 }
 
-/** Note Elo de l'équipe et son historique, mois par mois depuis 2000-01. */
+/** Elo de l'équipe (moyenne de ses joueurs, sans les absents) et son historique, mois par mois depuis 2013-14. */
 function TeamElo({ id }: { id: string }) {
   const elo = useElo()
-  const t = elo?.byId.get(id)
+  const t = elo?.teamById.get(id)
   if (!elo) return <Loading label="Calcul de l’Elo…" />
   if (!t) return <Empty>Elo indisponible.</Empty>
-  const pts = eloPoints(t.rating - 1500)
+  const pts = vsAverage(elo, t)
   return (
     <section className="card">
       <div className="elo-stats">
@@ -189,8 +189,15 @@ function TeamElo({ id }: { id: string }) {
           <span>sur 30 jours</span>
         </div>
       </div>
+      {t.absents.length > 0 && (
+        <p className="muted small elo-absents">
+          Sans {t.absents.map((a) => `${a.name} (${Math.round(a.minutes)} min, Elo ${Math.round(a.rating)})`).join(', ')}, absent
+          {t.absents.length > 1 ? 's' : ''} d’après le rapport des blessés. Effectif complet : {Math.round(t.full)}.
+        </p>
+      )}
       <h3 className="card-title">Historique de l’Elo</h3>
-      <EloChart points={elo.history.get(id) ?? []} />
+      <EloChart points={elo.teamHistory.get(id) ?? []} />
+      <p className="footnote">Elo de l’équipe : moyenne des Elo de ses joueurs, pondérée par leurs minutes attendues (courbe : effectif complet, depuis 2013-14).</p>
     </section>
   )
 }

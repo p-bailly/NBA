@@ -1,5 +1,5 @@
 // Outils communs aux scripts de calcul de l'Elo : appels à l'API d'ESPN (curl, donc le proxy éventuel est respecté),
-// file d'attente parallèle et liste de tous les matchs NBA depuis 2000-01, gardée dans un dossier temporaire.
+// file d'attente parallèle, liste de tous les matchs NBA depuis 2013-14 et leurs box scores, gardés dans un dossier temporaire.
 import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -9,8 +9,8 @@ export const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nb
 export const CACHE = join(tmpdir(), 'nba-elo')
 mkdirSync(CACHE, { recursive: true })
 
-/** Première saison prise en compte (2001 = 2000-01). */
-export const FIRST_SEASON = 2001
+/** Première saison prise en compte (2014 = 2013-14) : il faut le box score de chaque match. */
+export const FIRST_SEASON = 2014
 
 export function get(url) {
   return new Promise((resolve, reject) => {
@@ -135,9 +135,6 @@ export function untilYesterday(games) {
   return { kept, until }
 }
 
-/** Première saison de l'Elo des joueurs (2014 = 2013-14) : il faut le box score de chaque match. */
-export const FIRST_PLAYER_SEASON = 2014
-
 /** Box score d'un match → joueurs de chaque équipe qui ont joué : [identifiant, minutes, +/-], et leurs noms. */
 export function boxOf(d) {
   const out = { teams: {}, names: {} }
@@ -161,12 +158,12 @@ export function boxOf(d) {
 }
 
 /**
- * Box scores des matchs depuis FIRST_PLAYER_SEASON, gardés par saison dans le dossier temporaire (seuls les matchs
+ * Box scores des matchs, gardés par saison dans le dossier temporaire (seuls les matchs
  * manquants sont téléchargés). Renvoie identifiant du match → box score.
  */
 export async function loadBoxes(games) {
   const all = {}
-  const seasons = [...new Set(games.filter((g) => g.season >= FIRST_PLAYER_SEASON).map((g) => g.season))]
+  const seasons = [...new Set(games.map((g) => g.season))]
   for (const s of seasons) {
     const file = join(CACHE, `box-${s}.json`)
     const boxes = existsSync(file) ? readJson(file) : {}

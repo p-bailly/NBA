@@ -7,7 +7,7 @@ import { ShotChart } from '../components/ShotChart'
 import { StatCompare } from '../components/StatCompare'
 import { EloDelta, Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
 import { WinProbChart } from '../components/WinProbChart'
-import { useElo, usePlayerElo } from '../hooks/useElo'
+import { useElo } from '../hooks/useElo'
 import { usePolling } from '../hooks/usePolling'
 import { formatOdds, isClutch, periodLong, periodShort, shortDate, signedLine, statusLabel, timeAgo, timeOf } from '../lib/format'
 import { href } from '../lib/router'
@@ -71,8 +71,8 @@ export function GamePage({ id }: { id: string }) {
 
 /** Box score, avec la variation d'Elo de chaque joueur une fois le match terminé. */
 function GameBox({ data }: { data: GameDetail }) {
-  const elo = usePlayerElo()
-  const deltas = data.game.state === 'post' ? elo?.recent.get(data.game.id) : undefined
+  const elo = useElo()
+  const deltas = data.game.state === 'post' ? elo?.recent.get(data.game.id)?.players : undefined
   return <BoxScore teams={data.box} elo={deltas} />
 }
 
@@ -155,9 +155,10 @@ function EloCard({ game }: { game: Game }) {
   if (!elo || ph === undefined) return null
   const home = game.home.team
   const away = game.away.team
-  const rh = elo.byId.get(home.id)!
-  const ra = elo.byId.get(away.id)!
-  const pts = (rh.rating - ra.rating + (game.neutral ? 0 : elo.params.hca)) / 28
+  const rh = elo.teamById.get(home.id)!
+  const ra = elo.teamById.get(away.id)!
+  const pts = (rh.rating - ra.rating + (game.neutral ? 0 : elo.params.hca)) * elo.ptsPerElo
+  const absents = [ra, rh].flatMap((t) => t.absents.filter((a) => a.minutes >= 5).map((a) => `${a.name} (${t.abbr})`))
   const fav = pts >= 0 ? home : away
   return (
     <Card title="Elo">
@@ -187,7 +188,9 @@ function EloCard({ game }: { game: Game }) {
       </div>
       <p className="footnote">
         {fav.name} favori de {Math.abs(pts).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} pts
-        {game.neutral ? ' (terrain neutre)' : `, avantage du terrain compris (${elo.params.hca} points d’Elo)`}.
+        {game.neutral ? ' (terrain neutre)' : `, avantage du terrain compris (${elo.params.hca} points d’Elo)`}. Elo d’une équipe : moyenne des Elo de
+        ses joueurs, pondérée par leurs minutes attendues.{' '}
+        {elo.injuries ? (absents.length ? `Absents retirés : ${absents.join(', ')}.` : 'Aucun absent annoncé.') : 'Rapport des blessés indisponible.'}
       </p>
     </Card>
   )

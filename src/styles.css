@@ -2302,3 +2302,7 @@ a.player-link:hover strong {
   stroke: var(--axis);
   stroke-width: 1;
 }
+.elo-absents {
+  margin: -4px 0 12px;
+  font-size: 12.5px;
+}
