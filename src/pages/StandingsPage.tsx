@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fetchStandings, type Conference } from '../api/espn'
+import { EloPlayers, EloTeams } from '../components/EloRanking'
 import { ProjectionTable } from '../components/Projection'
 import { ErrorBox, Loading, PageHeader, Segmented, TeamLogo } from '../components/ui'
 import { usePolling, type PollState } from '../hooks/usePolling'
@@ -8,11 +9,13 @@ import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
 type Conf = 'East' | 'West'
-type View = 'standings' | 'projection'
+type View = 'standings' | 'projection' | 'elo'
+type EloView = 'teams' | 'players'
 
 export function StandingsPage({ active }: { active: boolean }) {
   const [conf, setConf] = useState<Conf>('East')
   const [view, setView] = useState<View>('standings')
+  const [eloView, setEloView] = useState<EloView>('teams')
   const [previous, setPrevious] = useState(false)
 
   const { data, error, refresh } = usePolling(
@@ -40,19 +43,37 @@ export function StandingsPage({ active }: { active: boolean }) {
           onChange={setView}
           options={[
             { value: 'standings', label: 'Classement' },
-            { value: 'projection', label: 'Projection fin de saison' },
+            { value: 'projection', label: 'Projection' },
+            { value: 'elo', label: 'Elo' },
           ]}
         />
-        <Segmented<Conf>
-          value={conf}
-          onChange={setConf}
-          options={[
-            { value: 'East', label: 'Conférence Est' },
-            { value: 'West', label: 'Conférence Ouest' },
-          ]}
-        />
+        {view === 'elo' ? (
+          <Segmented<EloView>
+            value={eloView}
+            onChange={setEloView}
+            options={[
+              { value: 'teams', label: 'Équipes' },
+              { value: 'players', label: 'Joueurs' },
+            ]}
+          />
+        ) : (
+          <Segmented<Conf>
+            value={conf}
+            onChange={setConf}
+            options={[
+              { value: 'East', label: 'Conférence Est' },
+              { value: 'West', label: 'Conférence Ouest' },
+            ]}
+          />
+        )}
       </div>
-      {view === 'projection' ? (
+      {view === 'elo' ? (
+        eloView === 'teams' ? (
+          <EloTeams active={active} />
+        ) : (
+          <EloPlayers active={active} />
+        )
+      ) : view === 'projection' ? (
         <Projection conf={conf} {...proj} />
       ) : (
         <div className="content">

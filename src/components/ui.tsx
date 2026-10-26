@@ -132,3 +132,29 @@ export function UpdatedAt({ at, loading }: { at?: number; loading?: boolean }) {
   const t = new Date(at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return <span className={`updated ${loading ? 'is-loading' : ''}`}>Mis à jour {t}</span>
 }
+
+/** Variation d'Elo : « +12 », « −3,4 ». */
+export function EloDelta({ value }: { value?: number }) {
+  if (value === undefined || !Number.isFinite(value)) return null
+  const abs = Math.abs(value)
+  const text = abs < 10 ? abs.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : String(Math.round(abs))
+  const sign = value > 0.04 ? '+' : value < -0.04 ? '−' : '±'
+  return (
+    <span className={`elo-delta ${sign === '+' ? 'pos' : sign === '−' ? 'neg' : ''}`} title="Variation d’Elo">
+      {sign}
+      {text}
+    </span>
+  )
+}
+
+export function Chips<T extends string>({ options, value, onChange }: { options: { value: T; label: ReactNode }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <div className="chips scroll" role="tablist">
+      {options.map((o) => (
+        <button key={o.value} role="tab" aria-selected={o.value === value} className={`chip ${o.value === value ? 'active' : ''}`} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}

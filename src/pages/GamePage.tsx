@@ -5,8 +5,9 @@ import { BoxScore } from '../components/BoxScore'
 import { PlayByPlay } from '../components/PlayByPlay'
 import { ShotChart } from '../components/ShotChart'
 import { StatCompare } from '../components/StatCompare'
-import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
+import { EloDelta, Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, TeamLogo, UpdatedAt } from '../components/ui'
 import { WinProbChart } from '../components/WinProbChart'
+import { useElo, usePlayerElo } from '../hooks/useElo'
 import { usePolling } from '../hooks/usePolling'
 import { formatOdds, isClutch, periodLong, periodShort, shortDate, signedLine, statusLabel, timeAgo, timeOf } from '../lib/format'
 import { href } from '../lib/router'
@@ -58,7 +59,7 @@ export function GamePage({ id }: { id: string }) {
       )}
       <div className="content">
         {(!started || tab === 'summary') && <Summary data={data} />}
-        {started && tab === 'box' && (data.box.length ? <BoxScore teams={data.box} /> : <Empty>Box score indisponible.</Empty>)}
+        {started && tab === 'box' && (data.box.length ? <GameBox data={data} /> : <Empty>Box score indisponible.</Empty>)}
         {started && tab === 'pbp' && <PlayByPlay plays={data.plays} home={game.home.team} away={game.away.team} />}
         {started && tab === 'shots' && (
           <ShotChart plays={data.plays} box={data.box} home={game.home.team} away={game.away.team} live={game.state === 'in'} />
@@ -68,10 +69,19 @@ export function GamePage({ id }: { id: string }) {
   )
 }
 
+/** Box score, avec la variation d'Elo de chaque joueur une fois le match terminé. */
+function GameBox({ data }: { data: GameDetail }) {
+  const elo = usePlayerElo()
+  const deltas = data.game.state === 'post' ? elo?.recent.get(data.game.id) : undefined
+  return <BoxScore teams={data.box} elo={deltas} />
+}
+
 function Scoreboard({ data }: { data: GameDetail }) {
   const { game } = data
   const live = game.state === 'in'
   const periods = Math.max(4, game.home.linescores.length, game.away.linescores.length)
+  const elo = useElo()
+  const change = game.state === 'post' ? elo?.recent.get(game.id) : undefined
 
   return (
     <section className={`scoreboard ${live ? 'live' : ''}`}>
@@ -122,7 +132,64 @@ function Scoreboard({ data }: { data: GameDetail }) {
           </table>
         </div>
       )}
+
+      {change && (
+        <div className="sb-elo">
+          <span>
+            {game.away.team.abbr} <EloDelta value={change.away} />
+          </span>
+          <span className="muted">variation d’Elo</span>
+          <span>
+            <EloDelta value={change.home} /> {game.home.team.abbr}
+          </span>
+        </div>
+      )}
     </section>
+  )
+}
+
+/** Chances de victoire d'après l'Elo des deux équipes, avant le match. */
+function EloCard({ game }: { game: Game }) {
+  const elo = useElo()
+  const ph = elo?.prob(game.home.team.id, game.away.team.id, game.neutral)
+  if (!elo || ph === undefined) return null
+  const home = game.home.team
+  const away = game.away.team
+  const rh = elo.byId.get(home.id)!
+  const ra = elo.byId.get(away.id)!
+  const pts = (rh.rating - ra.rating + (game.neutral ? 0 : elo.params.hca)) / 28
+  const fav = pts >= 0 ? home : away
+  return (
+    <Card title="Elo">
+      <div className="stat-compare">
+        <div className="sc-legend">
+          <span><TeamLogo team={away} size={20} /><i className="key key-away" />{away.abbr}</span>
+          <span>{home.abbr}<i className="key key-home" /><TeamLogo team={home} size={20} /></span>
+        </div>
+        <div className="sc-row">
+          <div className="sc-values">
+            <span>{Math.round(ra.rating)} <small className="muted">({ra.rank}e)</small></span>
+            <span className="sc-label">Note Elo (rang)</span>
+            <span>{Math.round(rh.rating)} <small className="muted">({rh.rank}e)</small></span>
+          </div>
+        </div>
+        <div className="sc-row">
+          <div className="sc-values">
+            <span>{((1 - ph) * 100).toFixed(0)} %</span>
+            <span className="sc-label">Chances de victoire</span>
+            <span>{(ph * 100).toFixed(0)} %</span>
+          </div>
+          <div className="sc-bar">
+            <span className="away" style={{ flexGrow: 1 - ph }} />
+            <span className="home" style={{ flexGrow: ph }} />
+          </div>
+        </div>
+      </div>
+      <p className="footnote">
+        {fav.name} favori de {Math.abs(pts).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} pts
+        {game.neutral ? ' (terrain neutre)' : `, avantage du terrain compris (${elo.params.hca} points d’Elo)`}.
+      </p>
+    </Card>
   )
 }
 
@@ -194,6 +261,8 @@ function Summary({ data }: { data: GameDetail }) {
           </div>
         </Card>
       )}
+
+      {!started && <EloCard game={game} />}
 
       {!started && data.form.some((f) => f.games.length) && (
         <Card title="Forme (5 derniers matchs)">

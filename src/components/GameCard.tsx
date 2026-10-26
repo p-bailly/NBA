@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Competitor, Game } from '../api/espn'
 import { useGameOdds } from '../api/oddsApi'
+import { useElo } from '../hooks/useElo'
 import { formatOdds, handicapLabel, isClutch, periodShort, statusLabel } from '../lib/format'
 import { href } from '../lib/router'
-import { LiveBadge, TeamLogo } from './ui'
+import { EloDelta, LiveBadge, TeamLogo } from './ui'
 
 /** Vrai pendant un court instant quand la valeur change (ex. panier marqué). */
 function useFlash(value: unknown): boolean {
@@ -21,7 +22,7 @@ function useFlash(value: unknown): boolean {
   return flash
 }
 
-function TeamRow({ c, game, fav }: { c: Competitor; game: Game; fav: boolean }) {
+function TeamRow({ c, game, fav, elo, chance, change }: { c: Competitor; game: Game; fav: boolean; elo?: number; chance?: number; change?: number }) {
   const flash = useFlash(c.score)
   const showScore = game.state !== 'pre' && c.score != null
   const other = c.homeAway === 'home' ? game.away : game.home
@@ -34,8 +35,25 @@ function TeamRow({ c, game, fav }: { c: Competitor; game: Game; fav: boolean }) 
           {c.team.name}
           {fav && <span className="fav-mark" aria-label="Favori">★</span>}
         </span>
-        {c.record && <span className="gc-record">{c.record}</span>}
+        {(c.record || change !== undefined || elo !== undefined) && (
+          <span className="gc-record">
+            {c.record}
+            {c.record && (change !== undefined || elo !== undefined) && ' · '}
+            {change !== undefined ? (
+              <>
+                Elo <EloDelta value={change} />
+              </>
+            ) : (
+              elo !== undefined && `Elo ${Math.round(elo)}`
+            )}
+          </span>
+        )}
       </div>
+      {chance !== undefined && (
+        <span className={`gc-prob ${chance >= 0.5 ? 'fav' : ''}`} title="Chances de gagner d'après l'Elo">
+          {Math.round(chance * 100)} %
+        </span>
+      )}
       {showScore && <span className={`gc-score ${flash ? 'flash' : ''}`}>{c.score}</span>}
     </div>
   )
@@ -52,13 +70,17 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
   const homeOdds = formatOdds(odds?.moneyline?.home)
   const handicap = odds && handicapLabel(odds, game.home.team.abbr, game.away.team.abbr)
   const hasOdds = !!((awayOdds && homeOdds) || handicap)
+  const elo = useElo()
+  const homeProb = game.state === 'pre' ? elo?.prob(game.home.team.id, game.away.team.id, game.neutral) : undefined
+  const change = game.state === 'post' ? elo?.recent.get(game.id) : undefined
+  const rating = (c: Competitor) => (homeProb !== undefined ? elo?.byId.get(c.team.id)?.rating : undefined)
 
   return (
     <a className={`game-card ${live ? 'live' : ''} ${clutch ? 'clutch' : ''}`} href={href.game(game.id)}>
       <div className="gc-main">
         <div className="gc-teams">
-          <TeamRow c={game.away} game={game} fav={isFav(game.away)} />
-          <TeamRow c={game.home} game={game} fav={isFav(game.home)} />
+          <TeamRow c={game.away} game={game} fav={isFav(game.away)} elo={rating(game.away)} chance={homeProb === undefined ? undefined : 1 - homeProb} change={change?.away} />
+          <TeamRow c={game.home} game={game} fav={isFav(game.home)} elo={rating(game.home)} chance={homeProb} change={change?.home} />
         </div>
         <div className="gc-status">
           {live && <LiveBadge label={clutch ? 'SERRÉ' : 'LIVE'} />}
@@ -75,6 +97,12 @@ export function GameCard({ game, day, favorites }: { game: Game; day?: string; f
           )}
         </div>
       </div>
+      {homeProb !== undefined && (
+        <div className="gc-chance" aria-hidden="true">
+          <span className="away" style={{ flexGrow: 1 - homeProb }} />
+          <span className="home" style={{ flexGrow: homeProb }} />
+        </div>
+      )}
       {(top || game.note || (live && game.lastPlay) || hasOdds) && (
         <div className="gc-foot">
           {live && game.lastPlay ? (

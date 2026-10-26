@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { fetchPlayer, type PlayerGame, type PlayerProfile } from '../api/espn'
-import { Empty, ErrorBox, Headshot, Loading, PageHeader, Segmented, TeamLogo } from '../components/ui'
+import { EloChart } from '../components/EloChart'
+import { EloDelta, Empty, ErrorBox, Headshot, Loading, PageHeader, Segmented, TeamLogo } from '../components/ui'
+import { usePlayerElo } from '../hooks/useElo'
 import { usePolling } from '../hooks/usePolling'
 import { heightMetric, ordinal, positionFr, shortDate, timeOf, weightMetric } from '../lib/format'
 import { href } from '../lib/router'
@@ -72,7 +74,7 @@ export function PlayerPage({ id }: { id: string }) {
           ]}
         />
       </div>
-      <div className="content">{tab === 'stats' ? <Stats p={data} /> : <GameLog games={data.games} />}</div>
+      <div className="content">{tab === 'stats' ? <Stats p={data} /> : <GameLog games={data.games} playerId={id} />}</div>
     </>
   )
 }
@@ -101,7 +103,33 @@ function Hero({ p }: { p: PlayerProfile }) {
         </p>
         <p className="muted small">{facts.join(' · ')}</p>
         {p.draft && <p className="muted small">Draft {draftFr(p.draft)}</p>}
+        <PlayerEloLine id={p.id} />
       </div>
+    </section>
+  )
+}
+
+function PlayerEloLine({ id }: { id: string }) {
+  const elo = usePlayerElo()?.byId.get(id)
+  if (!elo) return null
+  return (
+    <p className="team-elo">
+      Elo : <strong>{Math.round(elo.rating)}</strong>
+      {elo.rank && ` · ${elo.rank}${elo.rank === 1 ? 'er' : 'e'} de la NBA`}
+      {elo.games < 82 && <span className="muted"> · provisoire</span>}
+    </p>
+  )
+}
+
+/** Historique de l'Elo du joueur (cinq dernières années). */
+function PlayerEloCard({ id }: { id: string }) {
+  const data = usePlayerElo()
+  const points = data?.history.get(id)
+  if (!points || points.length < 2) return null
+  return (
+    <section className="card">
+      <h3 className="card-title">Historique de l’Elo</h3>
+      <EloChart points={points} />
     </section>
   )
 }
@@ -170,6 +198,8 @@ function Stats({ p }: { p: PlayerProfile }) {
         </section>
       )}
 
+      <PlayerEloCard id={p.id} />
+
       {records.length > 0 && (
         <section className="card">
           <h3 className="card-title">Records de la saison{latestSeason ? ` ${latestSeason.match(/\d{4}-\d{2}/)?.[0] ?? ''}` : ''}</h3>
@@ -212,8 +242,9 @@ function recordsOf(games: PlayerGame[]) {
     .filter((r) => r !== undefined)
 }
 
-function GameLog({ games }: { games: PlayerGame[] }) {
+function GameLog({ games, playerId }: { games: PlayerGame[]; playerId: string }) {
   const [all, setAll] = useState(false)
+  const recent = usePlayerElo()?.recent
   if (!games.length) return <Empty>Aucun match joué pour l’instant.</Empty>
   const shown = all ? games : games.slice(0, 20)
   return (
@@ -233,6 +264,11 @@ function GameLog({ games }: { games: PlayerGame[] }) {
                   {g.opponent.abbr}
                   <span className={`wl ${g.result === 'W' ? 'w' : 'l'}`}>{g.result === 'W' ? 'V' : 'D'}</span>
                   {g.teamScore && <span className="muted">{g.teamScore}-{g.oppScore}</span>}
+                  {recent?.get(g.id)?.[playerId] !== undefined && (
+                    <span className="glog-elo">
+                      <EloDelta value={recent.get(g.id)![playerId]} />
+                    </span>
+                  )}
                 </span>
                 <span className="glog-line">
                   <strong>{s.points} pts</strong> · {s.totalRebounds} reb · {s.assists} pd

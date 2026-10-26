@@ -28,6 +28,26 @@ C'est une web app installable sur téléphone (PWA) : pas de store, pas de compt
   (1re à 15e), ses chances de playoffs (play-in compris) et son bilan projeté. Les matchs restants sont simulés
   5 000 fois à partir de l'indice BPI d'ESPN (avantage du terrain, égalités départagées aux confrontations directes
   puis au bilan dans la conférence, play-in joué).
+- **Elo** (onglet Classement → Elo), pour les **équipes** et pour les **joueurs**, comme dans l'appli LoL :
+  - **équipes** : calcul match par match sur tous les matchs depuis 2000-01 (saison régulière, play-in, playoffs ;
+    33 000 matchs). Le vainqueur prend des points au perdant, d'autant plus que la victoire était inattendue et large
+    (multiplicateur d'écart au score de FiveThirtyEight), avec un avantage du terrain ; entre deux saisons, chaque note
+    revient en partie vers 1500. Réglage choisi par `--tune` (meilleure prévision du vainqueur sur l'historique :
+    66 % de vainqueurs bien prévus). Note, rang, écart de points attendu face à une équipe moyenne, évolution sur 30 jours ;
+  - **joueurs** : calcul sur tous les box scores depuis 2013-14 (16 000 matchs). La force d'une équipe sur un match est
+    la moyenne des notes de ses joueurs pondérée par leurs minutes ; après le match, chaque joueur gagne ou perd selon
+    son résultat (celui de l'équipe mêlé à son +/-) par rapport à ce qui était attendu, d'autant plus qu'il a joué
+    longtemps. Un nouveau joueur démarre sous la moyenne et sa note bouge beaucoup au début. L'échelle est recentrée sur
+    1500 à chaque saison (67 % de vainqueurs bien prévus, les effectifs du match étant connus) ;
+  - sur les **cartes de match** : Elo et chances de victoire avant le match, variation d'Elo une fois terminé ; sur la
+    **fiche de match** : carte Elo avant le match, variation des deux équipes et colonne « ELO » (variation de chaque
+    joueur) dans le box score ; sur les **fiches équipe et joueur** : note, rang, courbe mois par mois (1 an, 3 ans ou
+    tout) et variation de chaque match récent.
+
+  `scripts/build-elo.mjs` et `scripts/build-player-elo.mjs` font le calcul une fois et écrivent `public/elo.json` et
+  `public/elo-players.json` ; l'appli y ajoute elle-même les matchs joués depuis (un tableau des scores par jour, et un
+  box score par match pour les joueurs) et garde le résultat sur l'appareil. Relancer les deux scripts de temps en temps
+  (par exemple à chaque nouvelle saison) puis pousser les deux fichiers évite à l'appli de rattraper trop de matchs.
 - **Leaders** de la saison (points, rebonds, passes, contres, % aux tirs…). Tant qu'ESPN sert encore ceux de la
   saison précédente (les premiers jours d'une saison), ils sont recalculés à partir des box scores des premiers matchs.
 - **Actus** NBA.
@@ -124,11 +144,13 @@ Projet perso, sans lien avec la NBA, ESPN ou Superfan Sports.
 src/
   api/espn.ts          appels à l'API ESPN → modèles simples (Game, GameDetail, Standings…)
   hooks/usePolling.ts  chargement + rafraîchissement automatique (pause en arrière-plan)
+  api/elo*.ts          Elo des équipes et des joueurs : instantané + matchs joués depuis, cache sur l'appareil
   lib/                 formatage (dates, statuts), favoris / réglages (localStorage), routage par hash,
-                       projection de fin de saison (simulation de Monte-Carlo)
+                       projection de fin de saison (simulation de Monte-Carlo), calcul de l'Elo (eloCore, playerEloCore)
   components/          cartes de match, graphique de probabilité, box score, play-by-play, alertes…
   pages/               Scores, Match, Mes équipes, Équipe, Classement, Leaders, Actus
-public/                manifest PWA, service worker, icônes
+public/                manifest PWA, service worker, icônes, Elo précalculé (elo.json, elo-players.json)
+scripts/               calcul de l'Elo sur l'historique d'ESPN (node scripts/build-elo.mjs, build-player-elo.mjs)
 android/               projet Android (Capacitor) qui embarque l'app web
 design/logo/           logo au crayon : generer.py (SVG, icône adaptative), puis png.cjs (PNG)
 ```

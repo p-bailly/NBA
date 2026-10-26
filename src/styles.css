@@ -289,7 +289,7 @@ img {
   border-radius: 11px;
 }
 .segmented button {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -598,8 +598,8 @@ img {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 7px;
+  flex-direction: column;
+  line-height: 1.2;
 }
 .gc-team {
   font-weight: 650;
@@ -612,6 +612,9 @@ img {
   font-size: 12px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gc-score {
   min-width: 2.6ch;
@@ -2103,4 +2106,199 @@ a.player-link:hover strong {
   font-size: 11px;
   color: var(--muted);
   font-weight: 700;
+}
+
+/* ---------- Elo ---------- */
+.gc-prob {
+  min-width: 3.4ch;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.gc-prob.fav {
+  color: var(--text);
+  font-weight: 800;
+}
+.gc-chance {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+  margin-top: 10px;
+}
+.gc-chance span {
+  min-width: 3px;
+  border-radius: 3px;
+}
+.gc-chance .away {
+  background: var(--c-away);
+}
+.gc-chance .home {
+  background: var(--c-home);
+}
+.elo-delta {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.elo-delta.pos {
+  color: var(--pos);
+}
+.elo-delta.neg {
+  color: var(--neg);
+}
+.elo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.elo-row {
+  display: grid;
+  grid-template-columns: 26px 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.elo-list li:first-child .elo-row {
+  border-top: 0;
+}
+.elo-rank {
+  text-align: right;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.elo-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.elo-name strong,
+.elo-name small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.elo-name small {
+  font-size: 11.5px;
+}
+.elo-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.elo-score strong {
+  font-size: 17px;
+}
+.elo-score small {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.elo-score .pos {
+  color: var(--pos);
+}
+.elo-score .neg {
+  color: var(--neg);
+}
+.elo-filters {
+  display: flex;
+  gap: 8px;
+}
+.elo-filters .search {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.btn.more {
+  align-self: center;
+}
+.team-elo {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.sb-elo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.sb-elo .muted {
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.sched-result .elo-delta,
+.glog-elo .elo-delta {
+  font-size: 12px;
+}
+.elo-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.elo-stats strong {
+  display: block;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.elo-stats span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.elo-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.elo-chart-read {
+  margin: 10px 0 2px;
+  font-size: 18px;
+}
+.elo-chart-read .pos {
+  color: var(--pos);
+  font-size: 14px;
+}
+.elo-chart-read .neg {
+  color: var(--neg);
+  font-size: 14px;
+}
+.elo-chart .chips.scroll {
+  padding: 0;
+}
+.ec-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+.ec-axis {
+  fill: var(--muted);
+  font-size: 10px;
+}
+.ec-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.ec-peak,
+.ec-dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+.ec-cursor {
+  stroke: var(--axis);
+  stroke-width: 1;
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { BoxPlayer, BoxTeam } from '../api/espn'
 import { href } from '../lib/router'
-import { Segmented, TeamLogo } from './ui'
+import { EloDelta, Segmented, TeamLogo } from './ui'
 
 // Colonnes affichées (clé ESPN → libellé français).
 const COLS: [string, string][] = [
@@ -26,7 +26,7 @@ const REASONS: Record<string, string> = {
   INJURED: 'Blessé',
 }
 
-function PlayerRow({ p }: { p: BoxPlayer }) {
+function PlayerRow({ p, elo }: { p: BoxPlayer; elo?: Record<string, number> }) {
   return (
     <tr className={p.didNotPlay ? 'dnp' : ''}>
       <th scope="row">
@@ -36,21 +36,25 @@ function PlayerRow({ p }: { p: BoxPlayer }) {
         <span className="bs-pos">{p.position}</span>
       </th>
       {p.didNotPlay ? (
-        <td colSpan={COLS.length} className="bs-reason">
+        <td colSpan={COLS.length + (elo ? 1 : 0)} className="bs-reason">
           N’a pas joué{p.reason ? ` · ${REASONS[p.reason] ?? p.reason.toLowerCase()}` : ''}
         </td>
       ) : (
-        COLS.map(([k]) => (
-          <td key={k} className={k === 'points' ? 'strong' : ''}>
-            {p.stats[k] || '–'}
-          </td>
-        ))
+        <>
+          {COLS.map(([k]) => (
+            <td key={k} className={k === 'points' ? 'strong' : ''}>
+              {p.stats[k] || '–'}
+            </td>
+          ))}
+          {elo && <td>{elo[p.id] !== undefined ? <EloDelta value={elo[p.id]} /> : '–'}</td>}
+        </>
       )}
     </tr>
   )
 }
 
-export function BoxScore({ teams }: { teams: BoxTeam[] }) {
+/** `elo` : variation d'Elo de chaque joueur (match terminé). */
+export function BoxScore({ teams, elo }: { teams: BoxTeam[]; elo?: Record<string, number> }) {
   const [idx, setIdx] = useState('0')
   const t = teams[Number(idx)]
   if (!t) return null
@@ -80,15 +84,16 @@ export function BoxScore({ teams }: { teams: BoxTeam[] }) {
               {COLS.map(([k, l]) => (
                 <th key={k} scope="col">{l}</th>
               ))}
+              {elo && <th scope="col">ELO</th>}
             </tr>
           </thead>
           <tbody>
-            {starters.map((p) => <PlayerRow key={p.id} p={p} />)}
+            {starters.map((p) => <PlayerRow key={p.id} p={p} elo={elo} />)}
             <tr className="bs-group">
               <th scope="row">Banc</th>
-              <td colSpan={COLS.length} />
+              <td colSpan={COLS.length + (elo ? 1 : 0)} />
             </tr>
-            {bench.map((p) => <PlayerRow key={p.id} p={p} />)}
+            {bench.map((p) => <PlayerRow key={p.id} p={p} elo={elo} />)}
           </tbody>
           <tfoot>
             <tr>
@@ -96,11 +101,12 @@ export function BoxScore({ teams }: { teams: BoxTeam[] }) {
               {COLS.map(([k]) => (
                 <td key={k}>{t.totals[k] || ''}</td>
               ))}
+              {elo && <td />}
             </tr>
           </tfoot>
         </table>
       </div>
-      <p className="footnote">PD passes décisives · RO rebonds offensifs · INT interceptions · CT contres · BP balles perdues · LF lancers francs</p>
+      <p className="footnote">PD passes décisives · RO rebonds offensifs · INT interceptions · CT contres · BP balles perdues · LF lancers francs{elo ? ' · ELO variation d’Elo du joueur' : ''}</p>
     </div>
   )
 }

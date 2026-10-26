@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { fetchRoster, fetchTeamSchedule, type Game } from '../api/espn'
+import { EloChart } from '../components/EloChart'
+import { eloPoints } from '../components/EloRanking'
 import { SeedChart } from '../components/Projection'
-import { Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, Star, TeamLogo } from '../components/ui'
+import { EloDelta, Empty, ErrorBox, Headshot, LiveBadge, Loading, PageHeader, Segmented, Star, TeamLogo } from '../components/ui'
+import { useElo } from '../hooks/useElo'
 import { usePolling } from '../hooks/usePolling'
 import { heightMetric, shortDate, statusLabel } from '../lib/format'
 import { getProjection } from '../lib/projection'
 import { href } from '../lib/router'
 import { useFavorites } from '../lib/store'
 
-type Tab = 'schedule' | 'roster' | 'projection'
+type Tab = 'schedule' | 'roster' | 'projection' | 'elo'
 
 export function TeamPage({ id }: { id: string }) {
   const [tab, setTab] = useState<Tab>('schedule')
@@ -21,6 +24,7 @@ export function TeamPage({ id }: { id: string }) {
   )
   const info = sched.data?.info
   const team = info?.team
+  const elo = useElo()?.byId.get(id)
 
   return (
     <>
@@ -45,6 +49,12 @@ export function TeamPage({ id }: { id: string }) {
             <h2>{team.displayName}</h2>
             {info?.record && <p className="team-record">{info.record}</p>}
             {info?.standing && <p className="muted">{translateStanding(info.standing)}</p>}
+            {elo && (
+              <p className="team-elo">
+                Elo : <strong>{Math.round(elo.rating)}</strong> · {elo.rank}
+                {elo.rank === 1 ? 're' : 'e'} de la NBA
+              </p>
+            )}
           </div>
         </section>
       )}
@@ -56,6 +66,7 @@ export function TeamPage({ id }: { id: string }) {
             { value: 'schedule', label: 'Calendrier' },
             { value: 'roster', label: 'Effectif' },
             { value: 'projection', label: 'Projection' },
+            { value: 'elo', label: 'Elo' },
           ]}
         />
       </div>
@@ -64,6 +75,8 @@ export function TeamPage({ id }: { id: string }) {
           <Roster id={id} />
         ) : tab === 'projection' ? (
           <TeamProjection id={id} />
+        ) : tab === 'elo' ? (
+          <TeamElo id={id} />
         ) : sched.error && !sched.data ? (
           <ErrorBox error={sched.error} onRetry={sched.refresh} />
         ) : !sched.data ? (
@@ -105,6 +118,7 @@ function Schedule({ games, teamId }: { games: Game[]; teamId: string }) {
 }
 
 function SchedRow({ g, teamId }: { g: Game; teamId: string }) {
+  const change = useElo()?.recent.get(g.id)
   const me = g.home.team.id === teamId ? g.home : g.away
   const opp = me === g.home ? g.away : g.home
   const won = g.state === 'post' && (me.score ?? 0) > (opp.score ?? 0)
@@ -123,6 +137,12 @@ function SchedRow({ g, teamId }: { g: Game; teamId: string }) {
               <span className={`wl ${won ? 'w' : 'l'}`}>{won ? 'V' : 'D'}</span>
               {me.score}-{opp.score}
               {g.period > 4 && <span className="muted"> {g.period === 5 ? 'Prol.' : `${g.period - 4}P`}</span>}
+              {change && (
+                <>
+                  {' '}
+                  <EloDelta value={me === g.home ? change.home : change.away} />
+                </>
+              )}
             </>
           ) : g.state === 'in' ? (
             <>
@@ -135,6 +155,43 @@ function SchedRow({ g, teamId }: { g: Game; teamId: string }) {
         </span>
       </a>
     </li>
+  )
+}
+
+/** Note Elo de l'équipe et son historique, mois par mois depuis 2000-01. */
+function TeamElo({ id }: { id: string }) {
+  const elo = useElo()
+  const t = elo?.byId.get(id)
+  if (!elo) return <Loading label="Calcul de l’Elo…" />
+  if (!t) return <Empty>Elo indisponible.</Empty>
+  const pts = eloPoints(t.rating - 1500)
+  return (
+    <section className="card">
+      <div className="elo-stats">
+        <div>
+          <strong>{Math.round(t.rating)}</strong>
+          <span>
+            {t.rank}
+            {t.rank === 1 ? 're' : 'e'} de la NBA
+          </span>
+        </div>
+        <div>
+          <strong>
+            {pts >= 0 ? '+' : '−'}
+            {Math.abs(pts).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}
+          </strong>
+          <span>pts face à une équipe moyenne</span>
+        </div>
+        <div>
+          <strong>
+            <EloDelta value={t.delta} />
+          </strong>
+          <span>sur 30 jours</span>
+        </div>
+      </div>
+      <h3 className="card-title">Historique de l’Elo</h3>
+      <EloChart points={elo.history.get(id) ?? []} />
+    </section>
   )
 }
 

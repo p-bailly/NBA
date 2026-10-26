@@ -4,11 +4,11 @@
 
 type J = any
 
-const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba'
+export const SITE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba'
 const SITE_V3 = 'https://site.api.espn.com/apis/site/v3/sports/basketball/nba'
 const STANDINGS = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings'
 
-async function getJson(url: string, signal?: AbortSignal): Promise<J> {
+export async function getJson(url: string, signal?: AbortSignal): Promise<J> {
   const res = await fetch(url, { signal, cache: 'no-store' })
   if (!res.ok) throw new Error(`ESPN ${res.status}`)
   return res.json()
@@ -80,6 +80,8 @@ export interface Game {
   odds?: Odds
   note?: string // NBA Cup, série de playoffs…
   lastPlay?: string
+  /** Terrain neutre (finale de la NBA Cup, matchs à l'étranger). */
+  neutral: boolean
 }
 
 export interface Scoreboard {
@@ -260,6 +262,7 @@ export function parseEvent(e: J): Game {
     odds: parseOdds(comp.odds),
     note,
     lastPlay: comp.situation?.lastPlay?.text,
+    neutral: !!comp.neutralSite,
   }
 }
 
