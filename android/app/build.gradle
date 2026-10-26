@@ -9,7 +9,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // La CI passe un numéro croissant pour que chaque APK s'installe par-dessus le précédent.
         versionCode((System.getenv("VERSION_CODE") ?: "1") as int)
-        versionName "1.0"
+        versionName(System.getenv("VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

@@ -35,6 +35,8 @@ jobs:
         working-directory: android
         env:
           VERSION_CODE: ${{ github.run_number }}
+          # Numéro affiché par Android (Paramètres → Applis) : 1.<numéro du build>.
+          VERSION_NAME: 1.${{ github.run_number }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
