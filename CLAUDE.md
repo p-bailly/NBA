@@ -14,7 +14,7 @@ par Capacitor 8 dans `android/`. Pas de serveur ni de compte : tout est appelé 
   asset `basket-live.apk` écrasé. `versionCode` = n° de run, `versionName` = `1.<n° de run>` (`1.0` en local).
 
 ## Architecture
-- `src/api/` : `espn.ts` (API ESPN vers des modèles simples), `eloFeed.ts`, `elo.ts`, `injuries.ts`, `oddsApi.ts`, `polymarket.ts`. `src/lib/` :
+- `src/api/` : `espn.ts` (API ESPN vers des modèles simples), `eloFeed.ts`, `elo.ts`, `injuries.ts`, `oddsApi.ts`, `mvp.ts`. `src/lib/` :
   formatage, `store.ts` (`localStorage`, clés `superfan:*` et `elo-v2`), routage par hash (`#/game/123`, hébergement statique),
   `projection.ts`, `eloCore.ts`/`playerEloCore.ts`, `nimbus.ts`, `notifications.ts`. Reste : `hooks/`, `components/`, `pages/`.
 - `usePolling` : rafraîchit toutes les 15 s si un match est en cours, 30 s s'il commence dans moins de 30 min, 2 min sinon ;
@@ -27,9 +27,11 @@ par Capacitor 8 dans `android/`. Pas de serveur ni de compte : tout est appelé 
 - API ESPN publique et non documentée (`site.api.espn.com`), qui peut changer sans préavis. CORS ouvert **sauf** `/teams` et
   `/teams/{id}` (WebView comprise) : la liste des équipes vient du classement, la fiche équipe du calendrier.
 - Leaders : en début de saison ESPN sert encore ceux de la saison précédente, ils sont alors recalculés depuis les box scores.
-- Course au MVP (onglet Leaders) : probabilités Polymarket (`gamma-api.polymarket.com`, CORS ouvert, sans clé), événement
-  `nba-AAAA-AA-mvp` de la saison, un marché Oui/Non par joueur (prix du Oui = probabilité ; « Player B », « Other »… inactifs,
-  ignorés). Photo, équipe et lien vers la fiche repris des leaders ESPN quand le nom concorde. Actualisation toutes les 5 min.
+- Course au MVP (onglet Leaders, `mvp.ts`) : d'abord Polymarket (`gamma-api.polymarket.com`, CORS ouvert, sans clé), événement
+  `nba-AAAA-AA-mvp`, un marché Oui/Non par joueur (prix du Oui = probabilité ; « Player B », « Other »… inactifs, ignorés).
+  **Polymarket est bloqué en France** (« Failed to fetch ») : 5 s au plus, puis repli pendant 1 h sur les cotes DraftKings des
+  « futures » ESPN (`sports.core.api.espn.com/v2/…/seasons/{année de fin}/futures`, « Regular Season MVP »), cotes américaines
+  converties en probabilités ramenées à 100 % ; les liens `$ref` (en http) sont passés en https. Actualisation toutes les 5 min.
 - Cotes : par défaut ESPN (DraftKings, -110 → 1,91). The Odds API : 3 crédits par actualisation (vainqueur, handicap, total) sur
   500 par mois, cache 6 h, nouvel essai 15 min après une erreur. La clé reste dans le `localStorage` (`superfan:odds`).
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { fetchLeaders, type LeaderEntry, type SeasonLeaders } from '../api/espn'
-import { fetchMvpRace } from '../api/polymarket'
+import { fetchLeaders, seenTeam, type LeaderEntry, type SeasonLeaders } from '../api/espn'
+import { fetchMvpRace } from '../api/mvp'
 import { ErrorBox, Headshot, Loading, PageHeader, TeamLogo, UpdatedAt } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
 import { href } from '../lib/router'
@@ -108,33 +108,43 @@ function MvpRace({ leaders, active }: { leaders?: SeasonLeaders; active: boolean
   return (
     <>
       <p className="notice">
-        Probabilité que chaque joueur soit élu MVP {data.season}, selon le marché de prédiction{' '}
-        <a href={data.url} target="_blank" rel="noreferrer">
-          Polymarket
-        </a>{' '}
-        ({Math.round(data.volume).toLocaleString('fr-FR')} $ échangés). <UpdatedAt at={updatedAt} loading={loading} />
+        Probabilité que chaque joueur soit élu MVP {data.season},{' '}
+        {data.source === 'polymarket' ? (
+          <>
+            selon le marché de prédiction{' '}
+            <a href={data.url} target="_blank" rel="noreferrer">
+              Polymarket
+            </a>{' '}
+            ({Math.round(data.volume ?? 0).toLocaleString('fr-FR')} $ échangés).
+          </>
+        ) : (
+          <>d’après les cotes de DraftKings (sans la marge du bookmaker). Polymarket n’est pas accessible depuis la France.</>
+        )}{' '}
+        <UpdatedAt at={updatedAt} loading={loading} />
       </p>
       <section className="card flush">
         <h3 className="card-title">Course au MVP</h3>
         <ol className="leader-list">
           {data.candidates.map((c, i) => {
             const e = espn.get(norm(c.name))
+            const athleteId = c.athleteId ?? e?.athleteId
+            const team = (c.teamId && seenTeam(c.teamId)) || e?.team
             const change = c.weekChange !== undefined && Math.abs(c.weekChange) >= 0.005 ? c.weekChange : undefined
             return (
               <li key={c.name} className={i === 0 ? 'first' : ''}>
                 <span className="ll-rank">{i + 1}</span>
                 <Headshot src={e?.headshot ?? c.image} alt={c.name} size={i === 0 ? 56 : 44} />
                 <span className="ll-main">
-                  {e ? (
-                    <a className="player-link" href={href.player(e.athleteId)}>
+                  {athleteId ? (
+                    <a className="player-link" href={href.player(athleteId)}>
                       <strong>{c.name}</strong>
                     </a>
                   ) : (
                     <strong>{c.name}</strong>
                   )}
-                  {e?.team && (
-                    <a className="ll-team muted" href={href.team(e.team.id)}>
-                      <TeamLogo team={e.team} size={16} /> {e.team.name}
+                  {team && (
+                    <a className="ll-team muted" href={href.team(team.id)}>
+                      <TeamLogo team={team} size={16} /> {team.name}
                     </a>
                   )}
                   <span className="mvp-bar">
