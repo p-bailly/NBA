@@ -1652,6 +1652,28 @@ input[role='switch']:checked::after {
   font-variant-numeric: tabular-nums;
 }
 
+.mvp-bar {
+  display: block;
+  height: 4px;
+  margin-top: 5px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.mvp-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.mvp-value {
+  min-width: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 /* ---------- Actus ---------- */
 .news-list {
   display: flex;
