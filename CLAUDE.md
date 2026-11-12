@@ -14,7 +14,8 @@ par Capacitor 8 dans `android/`. Pas de serveur ni de compte : tout est appelé 
   asset `basket-live.apk` écrasé. `versionCode` = n° de run, `versionName` = `1.<n° de run>` (`1.0` en local).
 
 ## Architecture
-- `src/api/` : `espn.ts` (API ESPN vers des modèles simples), `eloFeed.ts`, `elo.ts`, `injuries.ts`, `oddsApi.ts`, `mvp.ts`. `src/lib/` :
+- `src/api/` : `espn.ts` (API ESPN vers des modèles simples), `eloFeed.ts`, `elo.ts`, `injuries.ts`, `oddsApi.ts`, `mvp.ts`,
+  `playerStats.ts`. `src/lib/` :
   formatage, `store.ts` (`localStorage`, clés `superfan:*` et `elo-v2`), routage par hash (`#/game/123`, hébergement statique),
   `projection.ts`, `eloCore.ts`/`playerEloCore.ts`, `nimbus.ts`, `notifications.ts`. Reste : `hooks/`, `components/`, `pages/`.
 - `usePolling` : rafraîchit toutes les 15 s si un match est en cours, 30 s s'il commence dans moins de 30 min, 2 min sinon ;
@@ -32,6 +33,12 @@ par Capacitor 8 dans `android/`. Pas de serveur ni de compte : tout est appelé 
   **Polymarket est bloqué en France** (« Failed to fetch ») : 5 s au plus, puis repli pendant 1 h sur les cotes DraftKings des
   « futures » ESPN (`sports.core.api.espn.com/v2/…/seasons/{année de fin}/futures`, « Regular Season MVP »), cotes américaines
   converties en probabilités ramenées à 100 % ; les liens `$ref` (en http) sont passés en https. Actualisation toutes les 5 min.
+- Classements Per 36 / Stats avancées / +/- (onglet Leaders, `playerStats.ts`) : totaux de tous les joueurs en un appel
+  (`site.api.espn.com/apis/common/v3/…/statistics/byathlete`, ~300 Ko compressé ; le même chemin sur `site.web.api` n'a pas
+  été vérifié). +/- et PER n'y sont pas : fiche de chaque joueur classé (`sports.core.api.espn.com/…/athletes/{id}/statistics/0`,
+  ~230 requêtes, 8 à la fois, cache 30 min). Usage calculé avec les totaux d'équipe = somme de ses joueurs. Classé : 70 % des
+  matchs et 15 min par match. Leaders du match : contres et +/- tirés du box score (ESPN ne donne que points, rebonds, passes).
+- Graphique du match (`WinProbChart`) : probabilité de victoire + score (points de chaque équipe ou écart) tiré des actions.
 - Cotes : par défaut ESPN (DraftKings, -110 → 1,91). The Odds API : 3 crédits par actualisation (vainqueur, handicap, total) sur
   500 par mois, cache 6 h, nouvel essai 15 min après une erreur. La clé reste dans le `localStorage` (`superfan:odds`).
 

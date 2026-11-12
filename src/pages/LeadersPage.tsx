@@ -1,14 +1,22 @@
 import { useState } from 'react'
 import { fetchLeaders, seenTeam, type LeaderEntry, type SeasonLeaders } from '../api/espn'
 import { fetchMvpRace } from '../api/mvp'
+import { PlusMinusLeaders, StatsTable } from '../components/PlayerRankings'
 import { ErrorBox, Headshot, Loading, PageHeader, TeamLogo, UpdatedAt } from '../components/ui'
 import { usePolling } from '../hooks/usePolling'
 import { href } from '../lib/router'
 
 // Catégories affichées (nom ESPN → libellé français), dans l'ordre des onglets.
+// Onglets qui ne viennent pas des leaders d'ESPN : chacun charge ses propres données.
 const MVP = 'mvp'
+const PER36 = 'per36'
+const ADVANCED = 'advanced'
+const PLUS_MINUS = 'plusMinus'
+const OWN = [MVP, PER36, ADVANCED, PLUS_MINUS]
 const CATEGORIES: [string, string][] = [
   [MVP, 'Course au MVP'],
+  [PER36, 'Per 36'],
+  [ADVANCED, 'Stats avancées'],
   ['pointsPerGame', 'Points'],
   ['reboundsPerGame', 'Rebonds'],
   ['assistsPerGame', 'Passes'],
@@ -19,6 +27,7 @@ const CATEGORIES: [string, string][] = [
   ['3PointPct', '% à 3 pts'],
   ['FreeThrowPct', '% aux LF'],
   ['doubleDouble', 'Doubles-doubles'],
+  [PLUS_MINUS, '+/-'],
   ['PER', 'PER'],
   ['minutesPerGame', 'Minutes'],
 ]
@@ -33,7 +42,8 @@ export function LeadersPage({ active }: { active: boolean }) {
   )
 
   const category = data?.categories.find((c) => c.name === cat)
-  const available = CATEGORIES.filter(([name]) => name === MVP || (data?.categories.some((c) => c.name === name) ?? true))
+  const available = CATEGORIES.filter(([name]) => OWN.includes(name) || (data?.categories.some((c) => c.name === name) ?? true))
+  const espnCat = !OWN.includes(cat)
 
   return (
     <>
@@ -47,15 +57,18 @@ export function LeadersPage({ active }: { active: boolean }) {
       </div>
       <div className="content">
         {cat === MVP && <MvpRace leaders={data} active={active} />}
-        {cat !== MVP && error && !data && <ErrorBox error={error} onRetry={refresh} />}
-        {cat !== MVP && !data && !error && <Loading />}
-        {cat !== MVP && data?.computedFrom && (
+        {cat === PER36 && <StatsTable key={PER36} mode="per36" active={active} />}
+        {cat === ADVANCED && <StatsTable key={ADVANCED} mode="advanced" active={active} />}
+        {cat === PLUS_MINUS && <PlusMinusLeaders active={active} />}
+        {espnCat && error && !data && <ErrorBox error={error} onRetry={refresh} />}
+        {espnCat && !data && !error && <Loading />}
+        {espnCat && data?.computedFrom && (
           <p className="notice">
             ESPN n’a pas encore publié les stats officielles de la saison : classements calculés sur{' '}
             {data.computedFrom > 1 ? `les ${data.computedFrom} premiers matchs` : 'le premier match'}.
           </p>
         )}
-        {category && (
+        {espnCat && category && (
           <section className="card flush">
             <h3 className="card-title">{CATEGORIES.find(([name]) => name === cat)?.[1] ?? category.label}</h3>
             <ol className="leader-list">
