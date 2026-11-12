@@ -217,6 +217,8 @@ const LEADER_LABELS: Record<string, string> = {
   points: 'Points',
   rebounds: 'Rebonds',
   assists: 'Passes déc.',
+  blocks: 'Contres',
+  plusMinus: '+/-',
   pointsPerGame: 'Points / match',
   reboundsPerGame: 'Rebonds / match',
   assistsPerGame: 'Passes / match',
@@ -228,7 +230,10 @@ function Summary({ data }: { data: GameDetail }) {
   const away = game.away.team
   const started = game.state !== 'pre'
 
-  const leadersOf = (t: Team) => data.leaders.find((l) => l.teamId === t.id)?.leaders ?? []
+  const leadersOf = (t: Team) => {
+    const espn = data.leaders.find((l) => l.teamId === t.id)?.leaders ?? []
+    return started ? [...espn, ...boxLeaders(data, t, espn)] : espn
+  }
   const awayL = leadersOf(away)
   const homeL = leadersOf(home)
   const cats = [...new Set([...awayL, ...homeL].map((l) => l.category))].filter((c) => c in LEADER_LABELS)
@@ -237,8 +242,8 @@ function Summary({ data }: { data: GameDetail }) {
 
   return (
     <div className="summary">
-      {started && data.winProb.length > 1 && (
-        <Card title="Probabilité de victoire">
+      {started && (data.winProb.length > 1 || data.plays.length > 1) && (
+        <Card title={data.winProb.length > 1 ? 'Probabilité de victoire et score' : 'Évolution du score'}>
           <WinProbChart points={data.winProb} plays={data.plays} home={home} away={away} />
         </Card>
       )}
@@ -452,6 +457,37 @@ function OddsCard({ game, fallback }: { game: Game; fallback?: Odds }) {
       )}
     </Card>
   )
+}
+
+// Leaders absents de ceux d'ESPN (contres, +/-), tirés du box score.
+const BOX_LEADERS: [key: string, category: string, label: string][] = [
+  ['blocks', 'blocks', 'CT'],
+  ['plusMinus', 'plusMinus', '+/-'],
+]
+
+function boxLeaders(data: GameDetail, team: Team, espn: Leader[]): Leader[] {
+  const players = data.box.find((b) => b.team.id === team.id)?.players.filter((p) => !p.didNotPlay) ?? []
+  const out: Leader[] = []
+  for (const [key, category, label] of BOX_LEADERS) {
+    if (espn.some((l) => l.category === category)) continue
+    let best: { p: (typeof players)[number]; n: number } | undefined
+    for (const p of players) {
+      const n = Number(p.stats[key])
+      if (Number.isFinite(n) && p.stats[key] !== '' && (!best || n > best.n)) best = { p, n }
+    }
+    // Pas de leader aux contres à 0 ; au +/-, le meilleur même négatif.
+    if (!best || (key === 'blocks' && best.n <= 0)) continue
+    out.push({
+      category,
+      label,
+      value: key === 'plusMinus' && best.n > 0 ? `+${best.n}` : String(best.n).replace('-', '−'),
+      num: best.n,
+      athleteId: best.p.id,
+      shortName: best.p.shortName,
+      headshot: best.p.headshot,
+    })
+  }
+  return out
 }
 
 function LeaderCell({ l, right }: { l?: Leader; right?: boolean }) {

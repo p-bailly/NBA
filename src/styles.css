@@ -1016,6 +1016,51 @@ img {
 .wp-axis.bottom {
   bottom: 0;
 }
+.wp-axis.right {
+  left: auto;
+  right: 4px;
+  text-align: right;
+}
+/* Score par-dessus la probabilité : pointillés fins, pleins s'il n'y a pas de probabilité. */
+.wp-score {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.85;
+}
+.wp-score.solid {
+  stroke-width: 2;
+  stroke-dasharray: none;
+  opacity: 1;
+}
+.wp-score.home {
+  stroke: var(--c-home);
+}
+.wp-score.away {
+  stroke: var(--c-away);
+}
+.key-score {
+  background: repeating-linear-gradient(90deg, var(--text-2) 0 4px, transparent 4px 7px);
+}
+.wp-score-now {
+  font-size: 12.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.wp-score-now.big {
+  font-size: 18px;
+  font-weight: 800;
+}
+.wp-overlay {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+.wp-overlay .segmented {
+  width: 200px;
+}
 .wp-dot {
   position: absolute;
   width: 10px;
@@ -1024,6 +1069,11 @@ img {
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 2px var(--surface);
   pointer-events: none;
+}
+.wp-dot.small {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 1.5px var(--surface);
 }
 .wp-dot[data-side='home'] {
   background: var(--c-home);
@@ -1672,6 +1722,46 @@ input[role='switch']:checked::after {
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+}
+
+/* Classements per 36 et stats avancées */
+.rank-table th[scope='row'] {
+  min-width: 150px;
+}
+.rank-n {
+  display: inline-block;
+  min-width: 22px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+}
+.rank-sort {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.rank-sort.active {
+  color: var(--accent);
+}
+.rank-more {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pm-avg {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Actus ---------- */
